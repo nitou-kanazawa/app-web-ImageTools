@@ -99,6 +99,9 @@ test('マスク画像をダウンロードできる', async ({ page }) => {
   const box = await area.boundingBox();
   if (!box) throw new Error('canvas area not found');
 
+  // 未描画の間は保存ボタンが無効
+  await expect(page.getByRole('button', { name: 'マスク画像を保存' })).toBeDisabled();
+
   await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5);
   await page.mouse.down();
   await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.5, { steps: 3 });

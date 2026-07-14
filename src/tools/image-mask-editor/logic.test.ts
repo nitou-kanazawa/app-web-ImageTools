@@ -117,6 +117,16 @@ describe('applyMaskAlpha', () => {
     expect(out[3]).toBe(0);
     expect(out[7]).toBe(255);
   });
+
+  it('元画像の透過を保持する（アルファは乗算）', () => {
+    // 元画像: [完全透過, 半透過(128)]
+    const transparent = new Uint8ClampedArray([200, 10, 10, 0, 10, 200, 10, 128]);
+    // マスク: 両ピクセルとも塗り
+    const full = new Uint8ClampedArray([255, 255, 255, 255, 255, 255, 255, 255]);
+    const out = applyMaskAlpha(transparent, full);
+    expect(out[3]).toBe(0); // 透過ピクセルは透過のまま
+    expect(out[7]).toBe(128); // 半透過も維持
+  });
 });
 
 describe('hasMaskPixels', () => {

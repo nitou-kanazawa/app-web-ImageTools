@@ -64,6 +64,7 @@ export function maskToBlackWhite(
 
 /**
  * 元画像の RGBA にマスクのアルファを適用して切り抜き画像を作る。
+ * 元画像自体の透過は保持する（アルファは乗算）。
  * invert = true でマスク部を透過（マスク外を残す）。
  */
 export function applyMaskAlpha(
@@ -77,7 +78,8 @@ export function applyMaskAlpha(
     out[i + 1] = image[i + 1];
     out[i + 2] = image[i + 2];
     const a = mask[i + 3];
-    out[i + 3] = invert ? 255 - a : a;
+    const m = invert ? 255 - a : a;
+    out[i + 3] = Math.round((image[i + 3] * m) / 255);
   }
   return out;
 }

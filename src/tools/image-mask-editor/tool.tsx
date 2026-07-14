@@ -6,6 +6,7 @@ import {
   BRUSH_MIN,
   applyMaskAlpha,
   exportFileName,
+  hasMaskPixels,
   maskToBlackWhite,
   nextBrushSize,
   screenToImage,
@@ -22,6 +23,8 @@ export const meta: ToolMeta = {
 type BrushMode = 'paint' | 'erase';
 
 const UNDO_LIMIT = 30;
+// undo スナップショットの合計バイト数上限。巨大画像でタブがメモリ不足にならないようにする。
+const UNDO_BYTE_BUDGET = 256 * 1024 * 1024;
 const OVERLAY_COLOR = '#ef4444';
 
 /** ImageData を PNG としてダウンロードする。 */
@@ -37,8 +40,36 @@ function downloadImageData(data: ImageData, filename: string) {
     a.href = url;
     a.download = filename;
     a.click();
-    URL.revokeObjectURL(url);
+    // ダウンロード開始前に revoke すると失敗するブラウザがあるため遅延させる
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, 'image/png');
+}
+
+/** ブラシ1セグメント分を対象コンテキストへ描画する（マスクとオーバーレイで共用）。 */
+function drawSegment(
+  ctx: CanvasRenderingContext2D,
+  color: string,
+  erase: boolean,
+  size: number,
+  point: { x: number; y: number },
+  last: { x: number; y: number } | null,
+) {
+  ctx.globalCompositeOperation = erase ? 'destination-out' : 'source-over';
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = size;
+  ctx.beginPath();
+  if (!last) {
+    ctx.arc(point.x, point.y, size / 2, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.moveTo(last.x, last.y);
+    ctx.lineTo(point.x, point.y);
+    ctx.stroke();
+  }
+  ctx.globalCompositeOperation = 'source-over';
 }
 
 export default function ImageMaskEditor() {
@@ -47,24 +78,52 @@ export default function ImageMaskEditor() {
   const [mode, setMode] = useState<BrushMode>('paint');
   const [invertExport, setInvertExport] = useState(false);
   const [undoCount, setUndoCount] = useState(0);
-  const [cursor, setCursor] = useState<{ x: number; y: number; visible: boolean }>({
-    x: 0,
-    y: 0,
-    visible: false,
-  });
+  const [maskEmpty, setMaskEmpty] = useState(true);
 
   const baseCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const undoStackRef = useRef<ImageData[]>([]);
-  const drawingRef = useRef<{ active: boolean; last: { x: number; y: number } | null }>({
-    active: false,
-    last: null,
-  });
-  const displayScaleRef = useRef(1);
+  const drawingRef = useRef<{
+    active: boolean;
+    pointerId: number;
+    last: { x: number; y: number } | null;
+  }>({ active: false, pointerId: -1, last: null });
   const canvasWrapRef = useRef<HTMLDivElement>(null);
+  const pendingImgRef = useRef<HTMLImageElement | null>(null);
 
-  /** マスク（オフスクリーン）を赤半透明としてオーバーレイに反映する。 */
+  // ブラシカーソルのプレビュー。pointermove ごとの再レンダーを避けるため
+  // React state ではなく DOM を直接更新する。
+  const cursorElRef = useRef<HTMLDivElement>(null);
+  const hoverRef = useRef<{ x: number; y: number; scale: number; visible: boolean }>({
+    x: 0,
+    y: 0,
+    scale: 1,
+    visible: false,
+  });
+
+  const updateCursorEl = useCallback((size: number) => {
+    const el = cursorElRef.current;
+    const h = hoverRef.current;
+    if (!el) return;
+    if (!h.visible) {
+      el.style.display = 'none';
+      return;
+    }
+    const r = (size / 2) * h.scale;
+    el.style.display = 'block';
+    el.style.left = `${h.x - r}px`;
+    el.style.top = `${h.y - r}px`;
+    el.style.width = `${r * 2}px`;
+    el.style.height = `${r * 2}px`;
+  }, []);
+
+  // Ctrl+ホイールなど、ポインタが動かなくてもサイズ変更をプレビューに反映する
+  useEffect(() => {
+    updateCursorEl(brushSize);
+  }, [brushSize, updateCursorEl]);
+
+  /** マスク（オフスクリーン）を赤で着色してオーバーレイへ全面反映する（undo/クリア/読み込み時用）。 */
   const redrawOverlay = useCallback(() => {
     const overlay = overlayCanvasRef.current;
     const mask = maskCanvasRef.current;
@@ -78,8 +137,6 @@ export default function ImageMaskEditor() {
     ctx.globalCompositeOperation = 'source-over';
   }, []);
 
-  const pendingImgRef = useRef<HTMLImageElement | null>(null);
-
   const loadFile = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) return;
     const url = URL.createObjectURL(file);
@@ -89,6 +146,7 @@ export default function ImageMaskEditor() {
       pendingImgRef.current = img;
       undoStackRef.current = [];
       setUndoCount(0);
+      setMaskEmpty(true);
       setImage({ name: file.name, width: img.naturalWidth, height: img.naturalHeight });
     };
     img.onerror = () => URL.revokeObjectURL(url);
@@ -113,13 +171,19 @@ export default function ImageMaskEditor() {
     maskCanvasRef.current = mask;
   }, [image]);
 
-  const pushUndo = useCallback(() => {
+  /** 現在のマスクを undo スタックへ積む。snapshot を渡すと getImageData を省略できる。 */
+  const pushUndo = useCallback((snapshot?: ImageData) => {
     const mask = maskCanvasRef.current;
     const ctx = mask?.getContext('2d');
     if (!mask || !ctx) return;
     const stack = undoStackRef.current;
-    stack.push(ctx.getImageData(0, 0, mask.width, mask.height));
-    if (stack.length > UNDO_LIMIT) stack.shift();
+    stack.push(snapshot ?? ctx.getImageData(0, 0, mask.width, mask.height));
+    let bytes = stack.reduce((n, d) => n + d.data.byteLength, 0);
+    while (stack.length > UNDO_LIMIT || (bytes > UNDO_BYTE_BUDGET && stack.length > 1)) {
+      const dropped = stack.shift();
+      if (!dropped) break;
+      bytes -= dropped.data.byteLength;
+    }
     setUndoCount(stack.length);
   }, []);
 
@@ -130,6 +194,7 @@ export default function ImageMaskEditor() {
     if (!mask || !ctx || !prev) return;
     ctx.putImageData(prev, 0, 0);
     setUndoCount(undoStackRef.current.length);
+    setMaskEmpty(!hasMaskPixels(prev.data));
     redrawOverlay();
   }, [redrawOverlay]);
 
@@ -137,73 +202,79 @@ export default function ImageMaskEditor() {
     const mask = maskCanvasRef.current;
     const ctx = mask?.getContext('2d');
     if (!mask || !ctx) return;
-    pushUndo();
+    const snapshot = ctx.getImageData(0, 0, mask.width, mask.height);
+    if (!hasMaskPixels(snapshot.data)) return; // 既に空なら何もしない
+    pushUndo(snapshot);
     ctx.clearRect(0, 0, mask.width, mask.height);
+    setMaskEmpty(true);
     redrawOverlay();
   }, [pushUndo, redrawOverlay]);
 
-  /** ポインタ位置を画像ピクセル座標へ変換し、表示倍率も記録する。 */
-  const toImagePoint = useCallback((clientX: number, clientY: number) => {
-    const overlay = overlayCanvasRef.current;
-    if (!overlay) return null;
-    const rect = overlay.getBoundingClientRect();
-    displayScaleRef.current = rect.width > 0 ? rect.width / overlay.width : 1;
-    return screenToImage(rect, overlay.width, overlay.height, clientX, clientY);
-  }, []);
-
   const strokeTo = useCallback(
     (point: { x: number; y: number }, isStart: boolean) => {
-      const ctx = maskCanvasRef.current?.getContext('2d');
-      if (!ctx) return;
-      ctx.globalCompositeOperation = mode === 'erase' ? 'destination-out' : 'source-over';
-      ctx.strokeStyle = '#fff';
-      ctx.fillStyle = '#fff';
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.lineWidth = brushSize;
-      const last = drawingRef.current.last;
-      ctx.beginPath();
-      if (isStart || !last) {
-        ctx.arc(point.x, point.y, brushSize / 2, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        ctx.moveTo(last.x, last.y);
-        ctx.lineTo(point.x, point.y);
-        ctx.stroke();
-      }
+      const maskCtx = maskCanvasRef.current?.getContext('2d');
+      const overlayCtx = overlayCanvasRef.current?.getContext('2d');
+      if (!maskCtx || !overlayCtx) return;
+      const last = isStart ? null : drawingRef.current.last;
+      const erase = mode === 'erase';
+      // マスク本体と表示用オーバーレイへ同じセグメントを描く（全面再合成を避ける）
+      drawSegment(maskCtx, '#fff', erase, brushSize, point, last);
+      drawSegment(overlayCtx, OVERLAY_COLOR, erase, brushSize, point, last);
       drawingRef.current.last = point;
-      redrawOverlay();
     },
-    [brushSize, mode, redrawOverlay],
+    [brushSize, mode],
   );
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
-      if (e.button !== 0) return;
-      const point = toImagePoint(e.clientX, e.clientY);
-      if (!point) return;
-      e.currentTarget.setPointerCapture(e.pointerId);
+      // 描画中の2本目のポインタ（マルチタッチ）は無視する
+      if (e.button !== 0 || drawingRef.current.active) return;
+      const overlay = e.currentTarget;
+      const rect = overlay.getBoundingClientRect();
+      overlay.setPointerCapture(e.pointerId);
       pushUndo();
-      drawingRef.current = { active: true, last: null };
-      strokeTo(point, true);
+      drawingRef.current = { active: true, pointerId: e.pointerId, last: null };
+      strokeTo(screenToImage(rect, overlay.width, overlay.height, e.clientX, e.clientY), true);
     },
-    [pushUndo, strokeTo, toImagePoint],
+    [pushUndo, strokeTo],
   );
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      setCursor({ x: e.clientX - rect.left, y: e.clientY - rect.top, visible: true });
-      if (!drawingRef.current.active) return;
-      const point = toImagePoint(e.clientX, e.clientY);
-      if (point) strokeTo(point, false);
+      const overlay = e.currentTarget;
+      const rect = overlay.getBoundingClientRect();
+      hoverRef.current = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+        scale: rect.width > 0 && overlay.width > 0 ? rect.width / overlay.width : 1,
+        visible: true,
+      };
+      updateCursorEl(brushSize);
+      const d = drawingRef.current;
+      if (!d.active || e.pointerId !== d.pointerId) return;
+      strokeTo(screenToImage(rect, overlay.width, overlay.height, e.clientX, e.clientY), false);
     },
-    [strokeTo, toImagePoint],
+    [brushSize, strokeTo, updateCursorEl],
   );
 
-  const endStroke = useCallback(() => {
-    drawingRef.current = { active: false, last: null };
-  }, []);
+  const endStroke = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      const d = drawingRef.current;
+      if (!d.active || e.pointerId !== d.pointerId) return;
+      drawingRef.current = { active: false, pointerId: -1, last: null };
+      if (mode === 'paint') {
+        setMaskEmpty(false);
+      } else {
+        // 消しゴムで全部消えた可能性があるのでストローク終了時のみ走査する
+        const mask = maskCanvasRef.current;
+        const ctx = mask?.getContext('2d');
+        if (mask && ctx) {
+          setMaskEmpty(!hasMaskPixels(ctx.getImageData(0, 0, mask.width, mask.height).data));
+        }
+      }
+    },
+    [mode],
+  );
 
   // Ctrl+ホイールでブラシサイズ変更（ブラウザズームを抑止するため passive: false で登録）
   useEffect(() => {
@@ -242,8 +313,6 @@ export default function ImageMaskEditor() {
     );
     downloadImageData(out, exportFileName(image.name, 'cutout'));
   }, [image, invertExport]);
-
-  const cursorRadius = (brushSize / 2) * displayScaleRef.current;
 
   const modeButton = (value: BrushMode, label: string) => (
     <button
@@ -346,31 +415,27 @@ export default function ImageMaskEditor() {
             ref={canvasWrapRef}
             data-testid="mask-canvas-area"
             className="relative inline-block max-w-full cursor-crosshair overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800"
-            onPointerLeave={() => setCursor((c) => ({ ...c, visible: false }))}
+            onPointerLeave={() => {
+              hoverRef.current.visible = false;
+              updateCursorEl(brushSize);
+            }}
           >
             <canvas ref={baseCanvasRef} className="block max-w-full" />
             <canvas
               ref={overlayCanvasRef}
               data-testid="mask-overlay"
-              className="absolute inset-0 h-full w-full opacity-50"
-              style={{ touchAction: 'none' }}
+              className="absolute inset-0 h-full w-full touch-none opacity-50"
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={endStroke}
               onPointerCancel={endStroke}
             />
-            {cursor.visible && (
-              <div
-                aria-hidden
-                className="pointer-events-none absolute rounded-full border border-blue-500 bg-blue-500/10"
-                style={{
-                  left: cursor.x - cursorRadius,
-                  top: cursor.y - cursorRadius,
-                  width: cursorRadius * 2,
-                  height: cursorRadius * 2,
-                }}
-              />
-            )}
+            <div
+              ref={cursorElRef}
+              aria-hidden
+              className="pointer-events-none absolute rounded-full border border-blue-500 bg-blue-500/10"
+              style={{ display: 'none' }}
+            />
           </div>
 
           {/* 出力 */}
@@ -388,14 +453,18 @@ export default function ImageMaskEditor() {
               <button
                 type="button"
                 onClick={downloadMask}
-                className="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+                disabled={maskEmpty}
+                title={maskEmpty ? '先にマスクを塗ってください' : undefined}
+                className="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-40"
               >
                 マスク画像を保存
               </button>
               <button
                 type="button"
                 onClick={downloadCutout}
-                className="rounded-md border border-blue-600 px-4 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+                disabled={maskEmpty}
+                title={maskEmpty ? '先にマスクを塗ってください' : undefined}
+                className="rounded-md border border-blue-600 px-4 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-40 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-950"
               >
                 切り抜き画像を保存
               </button>
