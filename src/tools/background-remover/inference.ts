@@ -6,7 +6,7 @@
  * モデル本体はユーザのブラウザが Hugging Face Hub から直接取得し、
  * ブラウザキャッシュに保存される（サーバは介在しない）。
  */
-import { env, pipeline, RawImage } from '@huggingface/transformers';
+import { pipeline, RawImage } from '@huggingface/transformers';
 import type {
   BackgroundRemovalPipeline,
   ProgressCallback,
@@ -14,9 +14,18 @@ import type {
 } from '@huggingface/transformers';
 import type { BgModelDef } from './logic';
 
-// WASM 実行を Web Worker に逃がして UI のフリーズを軽減する
-if (env.backends.onnx?.wasm) {
-  env.backends.onnx.wasm.proxy = true;
+/**
+ * WebGPU が実際に使えるか（API が存在してもアダプタが取れない環境がある。
+ * 例: CI のヘッドレスブラウザや GPU 無効環境）。
+ */
+async function isWebGpuAvailable(): Promise<boolean> {
+  try {
+    const gpu = (navigator as Navigator & { gpu?: { requestAdapter(): Promise<unknown> } }).gpu;
+    if (!gpu) return false;
+    return (await gpu.requestAdapter()) != null;
+  } catch {
+    return false;
+  }
 }
 
 interface CacheEntry {
@@ -47,7 +56,7 @@ async function getEntry(model: BgModelDef, onProgress: ProgressCallback): Promis
   }
 
   let entry: CacheEntry | null = null;
-  if ('gpu' in navigator) {
+  if (await isWebGpuAvailable()) {
     entry = createEntry(model, 'webgpu');
     entry.progress.cb = onProgress;
     pipelineCache.set(model.id, entry);

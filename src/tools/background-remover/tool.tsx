@@ -225,7 +225,7 @@ export default function BackgroundRemover() {
                 {busy ? '処理中...' : '自動で背景を除去'}
               </button>
               <span className="text-xs text-slate-500 dark:text-slate-400">
-                初回はモデルのダウンロードがあります（ブラウザ内で処理・画像は送信されません）
+                初回はモデルのダウンロードがあります（ブラウザ内で処理・画像は送信されません。処理中は画面が固まる場合があります）
               </span>
             </div>
             {autoStatus.phase !== 'idle' && (
