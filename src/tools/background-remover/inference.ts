@@ -7,7 +7,11 @@
  * ブラウザキャッシュに保存される（サーバは介在しない）。
  */
 import { env, pipeline, RawImage } from '@huggingface/transformers';
-import type { BackgroundRemovalPipeline, ProgressCallback } from '@huggingface/transformers';
+import type {
+  BackgroundRemovalPipeline,
+  ProgressCallback,
+  ProgressInfo,
+} from '@huggingface/transformers';
 import type { BgModelDef } from './logic';
 
 // WASM 実行を Web Worker に逃がして UI のフリーズを軽減する
@@ -15,55 +19,64 @@ if (env.backends.onnx?.wasm) {
   env.backends.onnx.wasm.proxy = true;
 }
 
-const pipelineCache = new Map<string, Promise<BackgroundRemovalPipeline>>();
+interface CacheEntry {
+  promise: Promise<BackgroundRemovalPipeline>;
+  device: 'webgpu' | 'wasm';
+  /** 常に最新の呼び出し元へ進捗を届けるための差し替え可能なコールバック。 */
+  progress: { cb: ProgressCallback | null };
+}
 
-function createPipeline(
-  model: BgModelDef,
-  device: 'webgpu' | 'wasm',
-  onProgress: ProgressCallback,
-): Promise<BackgroundRemovalPipeline> {
-  return pipeline('background-removal', model.id, {
+const pipelineCache = new Map<string, CacheEntry>();
+
+function createEntry(model: BgModelDef, device: 'webgpu' | 'wasm'): CacheEntry {
+  const progress: CacheEntry['progress'] = { cb: null };
+  const promise = pipeline('background-removal', model.id, {
     device,
     dtype: model.dtype,
-    progress_callback: onProgress,
+    progress_callback: (info: ProgressInfo) => progress.cb?.(info),
   });
+  return { promise, device, progress };
 }
 
 /** WebGPU が使えれば WebGPU、失敗したら WASM でパイプラインを用意する（モデルごとにキャッシュ）。 */
-async function getBgPipeline(
-  model: BgModelDef,
-  onProgress: ProgressCallback,
-): Promise<BackgroundRemovalPipeline> {
+async function getEntry(model: BgModelDef, onProgress: ProgressCallback): Promise<CacheEntry> {
   const cached = pipelineCache.get(model.id);
-  if (cached) return cached;
+  if (cached) {
+    cached.progress.cb = onProgress;
+    return cached;
+  }
 
-  const promise = (async () => {
-    if ('gpu' in navigator) {
-      try {
-        return await createPipeline(model, 'webgpu', onProgress);
-      } catch {
-        // WebGPU 非対応の演算があるモデルでは WASM にフォールバック
-      }
+  let entry: CacheEntry | null = null;
+  if ('gpu' in navigator) {
+    entry = createEntry(model, 'webgpu');
+    entry.progress.cb = onProgress;
+    pipelineCache.set(model.id, entry);
+    try {
+      await entry.promise;
+      return entry;
+    } catch {
+      // WebGPU での構築に失敗（非対応の演算など）→ WASM にフォールバック
+      pipelineCache.delete(model.id);
     }
-    return createPipeline(model, 'wasm', onProgress);
-  })();
+  }
 
-  pipelineCache.set(model.id, promise);
-  promise.catch(() => pipelineCache.delete(model.id));
-  return promise;
+  entry = createEntry(model, 'wasm');
+  entry.progress.cb = onProgress;
+  pipelineCache.set(model.id, entry);
+  try {
+    await entry.promise;
+  } catch (err) {
+    pipelineCache.delete(model.id);
+    throw err;
+  }
+  return entry;
 }
 
-/**
- * キャンバスの画像に対して背景除去を実行し、
- * 「残す部分」のアルファ値（0-255、キャンバスと同サイズ）を返す。
- */
-export async function removeBackgroundAlpha(
+async function runInference(
+  entry: CacheEntry,
   canvas: HTMLCanvasElement,
-  model: BgModelDef,
-  onProgress: ProgressCallback,
 ): Promise<Uint8ClampedArray> {
-  const pipe = await getBgPipeline(model, onProgress);
-
+  const pipe = await entry.promise;
   const input = RawImage.fromCanvas(canvas);
   const output = await pipe(input);
   const result = Array.isArray(output) ? output[0] : output;
@@ -84,4 +97,34 @@ export async function removeBackgroundAlpha(
     alpha[i] = rgba[i * 4 + 3];
   }
   return alpha;
+}
+
+/**
+ * キャンバスの画像に対して背景除去を実行し、
+ * 「残す部分」のアルファ値（0-255、キャンバスと同サイズ）を返す。
+ * WebGPU は推論時に初めて失敗することがあるため、その場合は
+ * 壊れたパイプラインをキャッシュから外し、WASM で一度だけ再試行する。
+ */
+export async function removeBackgroundAlpha(
+  canvas: HTMLCanvasElement,
+  model: BgModelDef,
+  onProgress: ProgressCallback,
+): Promise<Uint8ClampedArray> {
+  const entry = await getEntry(model, onProgress);
+  try {
+    return await runInference(entry, canvas);
+  } catch (err) {
+    if (entry.device !== 'webgpu') throw err;
+    // WebGPU の実行時エラー → WASM で作り直して再試行
+    pipelineCache.delete(model.id);
+    const fallback = createEntry(model, 'wasm');
+    fallback.progress.cb = onProgress;
+    pipelineCache.set(model.id, fallback);
+    try {
+      return await runInference(fallback, canvas);
+    } catch (err2) {
+      pipelineCache.delete(model.id);
+      throw err2;
+    }
+  }
 }

@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  BG_MODELS,
-  alphaToWhiteMask,
-  countTransparentPixels,
-  statusFromProgressEvent,
-} from './logic';
+import { BG_MODELS, alphaToWhiteMask, isFullyOpaque, statusFromProgressEvent } from './logic';
 
 describe('BG_MODELS', () => {
   it('モデル定義が揃っている', () => {
@@ -42,17 +37,21 @@ describe('statusFromProgressEvent', () => {
 });
 
 describe('alphaToWhiteMask', () => {
-  it('アルファを引き継いだ白マスクを作る', () => {
-    const src = new Uint8ClampedArray([10, 20, 30, 200, 40, 50, 60, 0]);
-    const out = alphaToWhiteMask(src);
+  it('アルファ配列から白マスク RGBA を作る', () => {
+    const alpha = new Uint8ClampedArray([200, 0]);
+    const out = alphaToWhiteMask(alpha);
+    expect(out.length).toBe(8);
     expect([...out.slice(0, 4)]).toEqual([255, 255, 255, 200]);
     expect([...out.slice(4, 8)]).toEqual([255, 255, 255, 0]);
   });
 });
 
-describe('countTransparentPixels', () => {
-  it('アルファ 255 未満のピクセルを数える', () => {
-    const src = new Uint8ClampedArray([0, 0, 0, 255, 0, 0, 0, 254, 0, 0, 0, 0]);
-    expect(countTransparentPixels(src)).toBe(2);
+describe('isFullyOpaque', () => {
+  it('すべて不透明なら true', () => {
+    expect(isFullyOpaque(new Uint8ClampedArray([1, 2, 3, 255, 4, 5, 6, 255]))).toBe(true);
+  });
+
+  it('1ピクセルでも透過があれば false', () => {
+    expect(isFullyOpaque(new Uint8ClampedArray([1, 2, 3, 255, 4, 5, 6, 254]))).toBe(false);
   });
 });

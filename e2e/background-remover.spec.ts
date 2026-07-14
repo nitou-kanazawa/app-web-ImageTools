@@ -116,12 +116,14 @@ test('自動背景除去（人物向けモデル）が完走する', async ({ pa
 
   const status = page.getByTestId('auto-status');
   await expect(status).toBeVisible();
-  // 完了（done）になるまで待つ。error になったら即失敗させる。
-  await expect(async () => {
-    const phase = await status.getAttribute('data-phase');
-    expect(phase, `status message: ${await status.textContent()}`).not.toBe('error');
-    expect(phase).toBe('done');
-  }).toPass({ timeout: 240_000, intervals: [2_000] });
+  // 終端状態（done / error）になるまで待ち、error なら即失敗させる
+  await expect
+    .poll(() => status.getAttribute('data-phase'), { timeout: 240_000, intervals: [2_000] })
+    .toMatch(/^(done|error)$/);
+  expect(
+    await status.getAttribute('data-phase'),
+    `status message: ${await status.textContent()}`,
+  ).toBe('done');
 
   await page.screenshot({ path: 'screenshots/tool-background-remover-auto.png', fullPage: true });
 });

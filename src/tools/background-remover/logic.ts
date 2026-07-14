@@ -50,24 +50,24 @@ export function statusFromProgressEvent(ev: {
 }
 
 /**
- * モデル出力（RGBA）のアルファ値を「残す部分マスク」（白 + アルファ）の RGBA へ変換する。
+ * アルファ値の配列（ピクセルごとに 0-255）を
+ * 「残す部分マスク」（白 + アルファ）の RGBA ピクセル列へ変換する。
  */
-export function alphaToWhiteMask(src: Uint8ClampedArray): Uint8ClampedArray<ArrayBuffer> {
-  const out = new Uint8ClampedArray(src.length);
-  for (let i = 0; i < src.length; i += 4) {
-    out[i] = 255;
-    out[i + 1] = 255;
-    out[i + 2] = 255;
-    out[i + 3] = src[i + 3];
+export function alphaToWhiteMask(alpha: Uint8ClampedArray): Uint8ClampedArray<ArrayBuffer> {
+  const out = new Uint8ClampedArray(alpha.length * 4);
+  for (let i = 0; i < alpha.length; i++) {
+    out[i * 4] = 255;
+    out[i * 4 + 1] = 255;
+    out[i * 4 + 2] = 255;
+    out[i * 4 + 3] = alpha[i];
   }
   return out;
 }
 
-/** RGBA ピクセル列の透明（アルファ < 255）ピクセル数を数える。 */
-export function countTransparentPixels(src: Uint8ClampedArray): number {
-  let n = 0;
+/** RGBA ピクセル列がすべて不透明（アルファ = 255）か。リセット不要判定に使う。 */
+export function isFullyOpaque(src: Uint8ClampedArray): boolean {
   for (let i = 3; i < src.length; i += 4) {
-    if (src[i] < 255) n++;
+    if (src[i] < 255) return false;
   }
-  return n;
+  return true;
 }
