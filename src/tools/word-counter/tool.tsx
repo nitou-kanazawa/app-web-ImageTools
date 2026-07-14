@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { ToolMeta } from '../types';
+import { useStatusItems } from '../../lib/statusBar';
 import { countText } from './logic';
 
 export const meta: ToolMeta = {
@@ -7,11 +8,17 @@ export const meta: ToolMeta = {
   title: '文字数カウンター',
   description: 'テキストの文字数・単語数・行数をリアルタイムに数えます。',
   tags: ['text', 'sample'],
+  icon: '🔤',
 };
 
 export default function WordCounter() {
   const [text, setText] = useState('');
   const stats = countText(text);
+
+  useStatusItems([
+    { key: 'chars', text: `${stats.characters} 文字` },
+    { key: 'lines', text: `${stats.lines} 行` },
+  ]);
 
   const items: { key: string; label: string; value: number }[] = [
     { key: 'characters', label: '文字数', value: stats.characters },

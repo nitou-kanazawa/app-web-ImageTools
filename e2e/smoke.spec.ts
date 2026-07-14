@@ -3,13 +3,16 @@ import { test, expect } from '@playwright/test';
 test('トップページにツール一覧が表示される', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Web MiniTools' })).toBeVisible();
-  // サンプルツールへのリンクが存在する
-  await expect(page.getByRole('link', { name: /文字数カウンター/ })).toBeVisible();
+  // サンプルツールへのリンクが存在する（サイドバーとウェルカム画面の両方にある）
+  await expect(page.getByRole('link', { name: /文字数カウンター/ }).first()).toBeVisible();
 });
 
 test('文字数カウンターが動作する', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('link', { name: /文字数カウンター/ }).click();
+  await page
+    .getByRole('link', { name: /文字数カウンター/ })
+    .first()
+    .click();
 
   const textarea = page.getByLabel('入力テキスト');
   await textarea.fill('hello world');

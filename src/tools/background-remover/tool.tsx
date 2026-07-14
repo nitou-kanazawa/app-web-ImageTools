@@ -7,6 +7,7 @@ import { useBrushEditor } from '../../lib/useBrushEditor';
 import { useMaskUndo } from '../../lib/useMaskUndo';
 import { BrushModeToggle, BrushSizeControl } from '../../components/BrushControls';
 import { ImageDropZone } from '../../components/ImageDropZone';
+import { useStatusItems } from '../../lib/statusBar';
 import {
   BG_MODELS,
   alphaToWhiteMask,
@@ -21,6 +22,7 @@ export const meta: ToolMeta = {
   description:
     '画像の背景を自動（AI モデル）または手動ブラシで除去して透過 PNG を出力します。すべてブラウザ内で処理されます。',
   tags: ['image', 'ai'],
+  icon: '✂️',
 };
 
 type BrushMode = 'erase' | 'restore';
@@ -138,6 +140,19 @@ export default function BackgroundRemover() {
     ctx.fillRect(0, 0, mask.width, mask.height);
     composite();
   }, [pushUndo, composite]);
+
+  useStatusItems(
+    image
+      ? [
+          { key: 'size', text: `${image.width}×${image.height}px`, title: '画像サイズ' },
+          { key: 'brush', text: `ブラシ ${brush.brushSize}px`, title: 'Ctrl+ホイールで変更' },
+          { key: 'mode', text: mode === 'erase' ? '消す' : '戻す' },
+          ...(autoStatus.phase !== 'idle'
+            ? [{ key: 'auto', text: autoStatus.message, title: '自動背景除去の状態' }]
+            : []),
+        ]
+      : [],
+  );
 
   const runAutoRemove = useCallback(async () => {
     const original = originalCanvasRef.current;
