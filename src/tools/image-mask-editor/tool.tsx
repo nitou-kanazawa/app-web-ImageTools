@@ -7,6 +7,7 @@ import { useBrushEditor } from '../../lib/useBrushEditor';
 import { useMaskUndo } from '../../lib/useMaskUndo';
 import { BrushModeToggle, BrushSizeControl } from '../../components/BrushControls';
 import { ImageDropZone } from '../../components/ImageDropZone';
+import { useStatusItems } from '../../lib/statusBar';
 import { applyMaskAlpha, maskToBlackWhite } from './logic';
 
 export const meta: ToolMeta = {
@@ -15,6 +16,7 @@ export const meta: ToolMeta = {
   description:
     '画像の上をブラシでなぞってマスク画像（白黒）を作成します。Ctrl+ホイールでブラシサイズを変更できます。',
   tags: ['image'],
+  icon: '🖼️',
 };
 
 type BrushMode = 'paint' | 'erase';
@@ -121,6 +123,16 @@ export default function ImageMaskEditor() {
     setMaskEmpty(true);
     redrawOverlay();
   }, [pushUndo, redrawOverlay]);
+
+  useStatusItems(
+    image
+      ? [
+          { key: 'size', text: `${image.width}×${image.height}px`, title: '画像サイズ' },
+          { key: 'brush', text: `ブラシ ${brush.brushSize}px`, title: 'Ctrl+ホイールで変更' },
+          { key: 'mode', text: mode === 'paint' ? 'ブラシ' : '消しゴム' },
+        ]
+      : [],
+  );
 
   const downloadMask = useCallback(() => {
     const mask = maskCanvasRef.current;

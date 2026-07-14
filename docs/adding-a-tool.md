@@ -23,6 +23,7 @@ export const meta: ToolMeta = {
   title: 'マイツール',
   description: 'このツールが何をするかを1〜2文で。',
   tags: ['text'], // 任意
+  icon: '🧩', // 任意。サイドバー・一覧に表示される絵文字
 };
 
 export default function MyTool() {
@@ -41,7 +42,17 @@ export default function MyTool() {
 }
 ```
 
-これだけで、トップページの一覧とルーティングに自動で追加される（`registry.ts` の編集は不要）。
+これだけで、サイドバーのツール一覧とルーティングに自動で追加される（`registry.ts` の編集は不要）。
+
+### ステータスバー（任意）
+
+アプリ下部のステータスバーに情報を出すには `useStatusItems` を使う:
+
+```tsx
+import { useStatusItems } from '../../lib/statusBar';
+
+useStatusItems([{ key: 'size', text: '1920×1080px' }]);
+```
 
 ## 3. ロジックを分離してテストする
 
