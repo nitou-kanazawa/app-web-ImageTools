@@ -4,13 +4,13 @@ import {
   BRUSH_DEFAULT,
   BRUSH_MAX,
   BRUSH_MIN,
-  applyMaskAlpha,
-  exportFileName,
+  drawSegment,
   hasMaskPixels,
-  maskToBlackWhite,
   nextBrushSize,
   screenToImage,
-} from './logic';
+} from '../../lib/brush';
+import { downloadImageData, exportFileName } from '../../lib/download';
+import { applyMaskAlpha, maskToBlackWhite } from './logic';
 
 export const meta: ToolMeta = {
   slug: 'image-mask-editor',
@@ -26,51 +26,6 @@ const UNDO_LIMIT = 30;
 // undo スナップショットの合計バイト数上限。巨大画像でタブがメモリ不足にならないようにする。
 const UNDO_BYTE_BUDGET = 256 * 1024 * 1024;
 const OVERLAY_COLOR = '#ef4444';
-
-/** ImageData を PNG としてダウンロードする。 */
-function downloadImageData(data: ImageData, filename: string) {
-  const canvas = document.createElement('canvas');
-  canvas.width = data.width;
-  canvas.height = data.height;
-  canvas.getContext('2d')?.putImageData(data, 0, 0);
-  canvas.toBlob((blob) => {
-    if (!blob) return;
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    // ダウンロード開始前に revoke すると失敗するブラウザがあるため遅延させる
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }, 'image/png');
-}
-
-/** ブラシ1セグメント分を対象コンテキストへ描画する（マスクとオーバーレイで共用）。 */
-function drawSegment(
-  ctx: CanvasRenderingContext2D,
-  color: string,
-  erase: boolean,
-  size: number,
-  point: { x: number; y: number },
-  last: { x: number; y: number } | null,
-) {
-  ctx.globalCompositeOperation = erase ? 'destination-out' : 'source-over';
-  ctx.strokeStyle = color;
-  ctx.fillStyle = color;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.lineWidth = size;
-  ctx.beginPath();
-  if (!last) {
-    ctx.arc(point.x, point.y, size / 2, 0, Math.PI * 2);
-    ctx.fill();
-  } else {
-    ctx.moveTo(last.x, last.y);
-    ctx.lineTo(point.x, point.y);
-    ctx.stroke();
-  }
-  ctx.globalCompositeOperation = 'source-over';
-}
 
 export default function ImageMaskEditor() {
   const [image, setImage] = useState<{ name: string; width: number; height: number } | null>(null);
