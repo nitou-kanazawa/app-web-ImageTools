@@ -15,40 +15,6 @@ export const BG_MODELS: BgModelDef[] = [
   { id: 'onnx-community/BiRefNet_lite', label: '汎用（高精度・処理が重い）', dtype: 'q8' },
 ];
 
-/** 自動除去の進行状態。 */
-export interface AutoStatus {
-  phase: 'idle' | 'loading' | 'running' | 'done' | 'error';
-  message: string;
-  /** 0-100。ダウンロード中のみ。 */
-  progress?: number;
-}
-
-/**
- * transformers.js の progress_callback イベントを UI 表示用のステータスへ変換する。
- * 関心のないイベントは null を返す（表示を変えない）。
- */
-export function statusFromProgressEvent(ev: {
-  status?: string;
-  file?: string;
-  progress?: number;
-}): AutoStatus | null {
-  switch (ev.status) {
-    case 'initiate':
-    case 'download':
-      return { phase: 'loading', message: `モデルを取得中... ${ev.file ?? ''}`.trim() };
-    case 'progress':
-      return {
-        phase: 'loading',
-        message: `モデルをダウンロード中... ${ev.file ?? ''}`.trim(),
-        progress: typeof ev.progress === 'number' ? Math.round(ev.progress) : undefined,
-      };
-    case 'ready':
-      return { phase: 'running', message: '背景を解析中...（初回は数十秒かかることがあります）' };
-    default:
-      return null;
-  }
-}
-
 /**
  * アルファ値の配列（ピクセルごとに 0-255）を
  * 「残す部分マスク」（白 + アルファ）の RGBA ピクセル列へ変換する。

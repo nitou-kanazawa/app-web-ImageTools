@@ -8,13 +8,8 @@ import { useMaskUndo } from '../../lib/useMaskUndo';
 import { BrushModeToggle, BrushSizeControl } from '../../components/BrushControls';
 import { ImageDropZone } from '../../components/ImageDropZone';
 import { useStatusItems } from '../../lib/statusBar';
-import {
-  BG_MODELS,
-  alphaToWhiteMask,
-  isFullyOpaque,
-  statusFromProgressEvent,
-  type AutoStatus,
-} from './logic';
+import { statusFromProgressEvent, type AutoStatus } from '../../lib/mlStatus';
+import { BG_MODELS, alphaToWhiteMask, isFullyOpaque } from './logic';
 
 export const meta: ToolMeta = {
   slug: 'background-remover',
