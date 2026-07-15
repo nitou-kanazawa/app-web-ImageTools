@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ネイティブ UI（スクロールバー・フォーム部品）の配色をテーマに合わせる */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
+}
+:root.dark {
+  color-scheme: dark;
 }
