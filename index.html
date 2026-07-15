@@ -5,10 +5,25 @@
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Web MiniTools</title>
-    <script type="module" crossorigin src="./assets/index-CuuAIxIt.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-tSsSuNN8.css">
+    <script type="module" crossorigin src="./assets/index-CFw7OKUp.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DkuBXgQZ.css">
   </head>
   <body>
     <div id="root"></div>
+    <!-- 初回描画前にテーマを適用してチラつきを防ぐ（ロジックは src/lib/theme.ts と揃えること） -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('wmt-theme');
+          if (t !== 'light' && t !== 'dark' && t !== 'system') t = 'dark';
+          var dark =
+            t === 'dark' ||
+            (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.classList.toggle('dark', dark);
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
   </body>
 </html>
