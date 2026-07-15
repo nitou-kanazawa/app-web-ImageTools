@@ -2,6 +2,8 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { tools } from '../tools/registry';
 import { StatusBarContext, type StatusItem } from '../lib/statusBar';
+import { THEME_LABELS, nextTheme } from '../lib/theme';
+import { useTheme } from '../lib/useTheme';
 
 /**
  * VS Code 風のアプリ全体レイアウト。
@@ -12,6 +14,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [filter, setFilter] = useState('');
   const [statusItems, setStatusItems] = useState<StatusItem[]>([]);
   const location = useLocation();
+  const { theme, cycleTheme } = useTheme();
 
   const activeTool = useMemo(() => {
     const match = location.pathname.match(/^\/tools\/([^/]+)/);
@@ -51,6 +54,16 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 text-xs text-slate-500 sm:block dark:text-slate-400">
           {activeTool ? `${activeTool.meta.title} — Web MiniTools` : 'Web MiniTools'}
         </div>
+        <button
+          type="button"
+          onClick={cycleTheme}
+          aria-label="テーマを切り替え"
+          title={`テーマ: ${THEME_LABELS[theme].label}（クリックで${THEME_LABELS[nextTheme(theme)].label}へ）`}
+          className="ml-auto flex items-center gap-1.5 rounded px-2 py-0.5 text-xs hover:bg-slate-300 dark:hover:bg-white/10"
+        >
+          <span aria-hidden>{THEME_LABELS[theme].icon}</span>
+          <span className="hidden sm:inline">{THEME_LABELS[theme].label}</span>
+        </button>
       </header>
 
       <div className="relative flex min-h-0 flex-1">

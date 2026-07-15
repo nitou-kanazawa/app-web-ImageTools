@@ -7,6 +7,25 @@ test('トップページにツール一覧が表示される', async ({ page }) 
   await expect(page.getByRole('link', { name: /文字数カウンター/ }).first()).toBeVisible();
 });
 
+test('テーマを切り替えられる', async ({ page }) => {
+  await page.goto('/');
+  const html = page.locator('html');
+  // 既定はダーク
+  await expect(html).toHaveClass(/dark/);
+
+  const toggle = page.getByRole('button', { name: 'テーマを切り替え' });
+  await toggle.click(); // ダーク → ライト
+  await expect(html).not.toHaveClass(/dark/);
+  await toggle.click(); // ライト → OS 連動（Playwright 既定はライト）
+  await expect(html).not.toHaveClass(/dark/);
+  await toggle.click(); // OS 連動 → ダーク
+  await expect(html).toHaveClass(/dark/);
+
+  // 選択が保存され、リロード後も維持される
+  await page.reload();
+  await expect(html).toHaveClass(/dark/);
+});
+
 test('文字数カウンターが動作する', async ({ page }) => {
   await page.goto('/');
   await page
