@@ -28,11 +28,18 @@ export default function DepthEstimator() {
     null,
   );
   const pendingImgRef = useRef<HTMLImageElement | null>(null);
+  // 何枚目の画像かの通し番号。推論中に画像が差し替えられたことを検出する
+  // （source キャンバス要素は再利用されるため、要素比較では検出できない）
+  const loadSeqRef = useRef(0);
+  // 推論完了時に「最新の」カラーマップで描画するためのミラー
+  const colormapRef = useRef(colormap);
+  colormapRef.current = colormap;
 
   const busy = status.phase === 'loading' || status.phase === 'running';
 
   const loadFile = useCallback((file: File) => {
     loadImageFile(file, (img) => {
+      loadSeqRef.current += 1;
       pendingImgRef.current = img;
       depthDataRef.current = null;
       setHasResult(false);
@@ -87,6 +94,7 @@ export default function DepthEstimator() {
   const runEstimate = useCallback(async () => {
     const source = sourceCanvasRef.current;
     if (!source || busy) return;
+    const seq = loadSeqRef.current;
     setStatus({ phase: 'loading', message: 'AI モデルを準備中...' });
     try {
       const { estimateDepth } = await import('./inference');
@@ -95,13 +103,13 @@ export default function DepthEstimator() {
         if (next) setStatus(next);
       });
       // 推論中に画像が差し替えられていたら結果を破棄する
-      if (sourceCanvasRef.current !== source || source.width !== result.width) {
+      if (loadSeqRef.current !== seq) {
         setStatus({ phase: 'idle', message: '' });
         return;
       }
       depthDataRef.current = result;
       setHasResult(true);
-      renderDepth(colormap);
+      renderDepth(colormapRef.current);
       setStatus({ phase: 'done', message: '完了' });
     } catch (err) {
       setStatus({
@@ -109,7 +117,7 @@ export default function DepthEstimator() {
         message: `失敗しました: ${err instanceof Error ? err.message : String(err)}`,
       });
     }
-  }, [busy, colormap, renderDepth]);
+  }, [busy, renderDepth]);
 
   const changeColormap = useCallback(
     (map: ColormapName) => {
