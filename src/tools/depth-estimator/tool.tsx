@@ -170,6 +170,16 @@ export default function DepthEstimator() {
     downloadCanvasPng(canvas, exportFileName(image.name, 'depth'));
   }, [image, hasResult]);
 
+  /** 画像と結果を破棄して初期状態（ドロップゾーン）へ戻す。 */
+  const clearImage = useCallback(() => {
+    loadSeqRef.current += 1; // 実行中の推論結果があっても破棄させる
+    depthDataRef.current = null;
+    pendingImgRef.current = null;
+    setHasResult(false);
+    setStatus({ phase: 'idle', message: '' });
+    setImage(null);
+  }, []);
+
   /** ワイパー位置をポインタ座標から更新する。 */
   const updateWiper = useCallback((clientX: number, el: HTMLElement) => {
     const rect = el.getBoundingClientRect();
@@ -198,7 +208,7 @@ export default function DepthEstimator() {
       />
 
       {!image ? (
-        <ImageDropZone inputId="depth-image-input" onFile={loadFile} />
+        <ImageDropZone inputId="depth-image-input" />
       ) : (
         <>
           {/* 実行 */}
@@ -362,16 +372,14 @@ export default function DepthEstimator() {
               >
                 深度マップを保存
               </button>
-              <label
-                htmlFor="depth-image-input"
-                className={`rounded-md border border-zinc-300 px-4 py-1.5 text-sm text-zinc-700 dark:border-zinc-700 dark:text-zinc-300 ${
-                  busy
-                    ? 'cursor-not-allowed opacity-40'
-                    : 'cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800'
-                }`}
+              <button
+                type="button"
+                onClick={clearImage}
+                disabled={busy}
+                className="rounded-md border border-zinc-300 px-4 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
-                別の画像を選択
-              </label>
+                画像をクリア
+              </button>
             </div>
           </div>
         </>
