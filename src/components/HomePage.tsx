@@ -27,7 +27,7 @@ export function HomePage() {
               <li key={meta.slug}>
                 <Link
                   to={`/tools/${meta.slug}`}
-                  className="flex h-full items-start gap-3.5 rounded-lg border border-zinc-200 bg-white p-4 transition hover:border-zinc-500 hover:shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-500"
+                  className="flex h-full items-start gap-3.5 rounded-lg border border-zinc-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-zinc-500 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-500"
                 >
                   <span
                     aria-hidden

@@ -9,3 +9,30 @@
 :root.dark {
   color-scheme: dark;
 }
+
+/* 操作感のためのマイクロアニメーション（控えめに統一） */
+@layer base {
+  button,
+  a {
+    transition:
+      color 150ms,
+      background-color 150ms,
+      border-color 150ms,
+      opacity 150ms,
+      transform 100ms,
+      box-shadow 150ms;
+  }
+  button:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+}
+
+/* OS 側でアニメーション削減が設定されていれば無効化する */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
