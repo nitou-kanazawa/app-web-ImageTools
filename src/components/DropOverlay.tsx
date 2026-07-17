@@ -7,6 +7,8 @@ import { Icon } from './icons';
 export function DropOverlay({ active }: { active: boolean }) {
   return (
     <div
+      data-testid="drop-overlay"
+      data-active={active}
       aria-hidden={!active}
       className={`pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-lg border-2 border-dashed border-zinc-500 bg-zinc-100/90 transition-opacity duration-150 dark:border-zinc-400 dark:bg-zinc-950/90 ${
         active ? 'opacity-100' : 'opacity-0'

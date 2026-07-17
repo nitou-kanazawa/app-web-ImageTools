@@ -192,6 +192,16 @@ export default function BackgroundRemover() {
     downloadCanvasPng(display, exportFileName(image.name, 'nobg'));
   }, [image]);
 
+  /** 画像とマスクを破棄して初期状態（ドロップゾーン）へ戻す。 */
+  const clearImage = useCallback(() => {
+    originalCanvasRef.current = null;
+    maskCanvasRef.current = null;
+    pendingImgRef.current = null;
+    resetHistory();
+    setAutoStatus({ phase: 'idle', message: '' });
+    setImage(null);
+  }, [resetHistory]);
+
   return (
     <div className="relative space-y-4" data-testid="bg-drop-target" {...dropHandlers}>
       <DropOverlay active={dragActive} />
@@ -210,7 +220,7 @@ export default function BackgroundRemover() {
       />
 
       {!image ? (
-        <ImageDropZone inputId="bg-image-input" onFile={loadFile} />
+        <ImageDropZone inputId="bg-image-input" />
       ) : (
         <>
           {/* 自動除去 */}
@@ -337,16 +347,14 @@ export default function BackgroundRemover() {
               >
                 透過 PNG を保存
               </button>
-              <label
-                htmlFor="bg-image-input"
-                className={`rounded-md border border-zinc-300 px-4 py-1.5 text-sm text-zinc-700 dark:border-zinc-700 dark:text-zinc-300 ${
-                  busy
-                    ? 'cursor-not-allowed opacity-40'
-                    : 'cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800'
-                }`}
+              <button
+                type="button"
+                onClick={clearImage}
+                disabled={busy}
+                className="rounded-md border border-zinc-300 px-4 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
-                別の画像を選択
-              </label>
+                画像をクリア
+              </button>
             </div>
           </div>
         </>

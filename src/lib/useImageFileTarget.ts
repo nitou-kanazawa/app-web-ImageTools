@@ -59,5 +59,21 @@ export function useImageFileTarget(onFile: (file: File) => void, enabled = true)
     return () => document.removeEventListener('paste', onPaste);
   }, []);
 
+  // 保険: ドラッグ操作がどこで終わってもオーバーレイを確実に解除する
+  // （ウィンドウ外でのドロップ中断、子要素での stopPropagation、Esc キャンセル等で
+  //  dragleave/drop がこの要素へ届かないケースへの対策）
+  useEffect(() => {
+    const reset = () => {
+      depthRef.current = 0;
+      setDragActive(false);
+    };
+    window.addEventListener('drop', reset);
+    window.addEventListener('dragend', reset);
+    return () => {
+      window.removeEventListener('drop', reset);
+      window.removeEventListener('dragend', reset);
+    };
+  }, []);
+
   return { dragActive, dropHandlers };
 }

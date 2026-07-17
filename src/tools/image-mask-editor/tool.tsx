@@ -148,6 +148,15 @@ export default function ImageMaskEditor() {
     downloadImageData(out, exportFileName(image.name, 'mask'));
   }, [image, invertExport]);
 
+  /** 画像とマスクを破棄して初期状態（ドロップゾーン）へ戻す。 */
+  const clearImage = useCallback(() => {
+    maskCanvasRef.current = null;
+    pendingImgRef.current = null;
+    resetHistory();
+    setMaskEmpty(true);
+    setImage(null);
+  }, [resetHistory]);
+
   const downloadCutout = useCallback(() => {
     const base = baseCanvasRef.current;
     const mask = maskCanvasRef.current;
@@ -181,7 +190,7 @@ export default function ImageMaskEditor() {
       />
 
       {!image ? (
-        <ImageDropZone inputId="mask-image-input" onFile={loadFile} />
+        <ImageDropZone inputId="mask-image-input" />
       ) : (
         <>
           {/* ツールバー */}
@@ -269,12 +278,13 @@ export default function ImageMaskEditor() {
               >
                 切り抜き画像を保存
               </button>
-              <label
-                htmlFor="mask-image-input"
-                className="cursor-pointer rounded-md border border-zinc-300 px-4 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              <button
+                type="button"
+                onClick={clearImage}
+                className="rounded-md border border-zinc-300 px-4 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
-                別の画像を選択
-              </label>
+                画像をクリア
+              </button>
             </div>
           </div>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
