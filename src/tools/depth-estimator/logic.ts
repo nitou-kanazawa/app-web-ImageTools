@@ -6,10 +6,10 @@ export const DEPTH_MODEL_ID = 'onnx-community/depth-anything-v2-small';
 export type ColormapName = 'gray' | 'gray-inverted' | 'viridis' | 'inferno';
 
 export const COLORMAPS: { value: ColormapName; label: string }[] = [
-  { value: 'gray', label: 'グレースケール（近い=白）' },
-  { value: 'gray-inverted', label: 'グレースケール（近い=黒）' },
-  { value: 'viridis', label: 'カラー (Viridis)' },
-  { value: 'inferno', label: 'カラー (Inferno)' },
+  { value: 'gray', label: 'グレー' },
+  { value: 'gray-inverted', label: 'グレー反転' },
+  { value: 'viridis', label: 'Viridis' },
+  { value: 'inferno', label: 'Inferno' },
 ];
 
 // カラーマップのアンカー色（matplotlib の代表点を線形補間する近似）

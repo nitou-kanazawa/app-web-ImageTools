@@ -8,6 +8,8 @@ import { useMaskUndo } from '../../lib/useMaskUndo';
 import { BrushModeToggle, BrushSizeControl } from '../../components/BrushControls';
 import { ImageDropZone } from '../../components/ImageDropZone';
 import { useStatusItems } from '../../lib/statusBar';
+import { useImageFileTarget } from '../../lib/useImageFileTarget';
+import { DropOverlay } from '../../components/DropOverlay';
 import { applyMaskAlpha, maskToBlackWhite } from './logic';
 
 export const meta: ToolMeta = {
@@ -87,6 +89,9 @@ export default function ImageMaskEditor() {
     [resetHistory],
   );
 
+  // ドラッグ&ドロップ / Ctrl+V で素早く画像を差し替えられるようにする
+  const { dragActive, dropHandlers } = useImageFileTarget(loadFile, true);
+
   // 画像 state が反映（canvas がマウント）されてからキャンバス群を初期化する
   useEffect(() => {
     const img = pendingImgRef.current;
@@ -160,7 +165,8 @@ export default function ImageMaskEditor() {
   }, [image, invertExport]);
 
   return (
-    <div className="space-y-4">
+    <div className="relative space-y-4" data-testid="mask-drop-target" {...dropHandlers}>
+      <DropOverlay active={dragActive} />
       <input
         type="file"
         accept="image/*"

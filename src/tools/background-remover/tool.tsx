@@ -8,6 +8,8 @@ import { useMaskUndo } from '../../lib/useMaskUndo';
 import { BrushModeToggle, BrushSizeControl } from '../../components/BrushControls';
 import { ImageDropZone } from '../../components/ImageDropZone';
 import { useStatusItems } from '../../lib/statusBar';
+import { useImageFileTarget } from '../../lib/useImageFileTarget';
+import { DropOverlay } from '../../components/DropOverlay';
 import { statusFromProgressEvent, type AutoStatus } from '../../lib/mlStatus';
 import { BG_MODELS, alphaToWhiteMask, isFullyOpaque } from './logic';
 
@@ -87,6 +89,9 @@ export default function BackgroundRemover() {
     },
     [resetHistory],
   );
+
+  // ドラッグ&ドロップ / Ctrl+V で素早く画像を差し替えられるようにする
+  const { dragActive, dropHandlers } = useImageFileTarget(loadFile, !busy);
 
   // 画像 state が反映（canvas がマウント）されてからキャンバス群を初期化する
   useEffect(() => {
@@ -188,7 +193,8 @@ export default function BackgroundRemover() {
   }, [image]);
 
   return (
-    <div className="space-y-4">
+    <div className="relative space-y-4" data-testid="bg-drop-target" {...dropHandlers}>
+      <DropOverlay active={dragActive} />
       <input
         type="file"
         accept="image/*"

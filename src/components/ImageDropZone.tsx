@@ -14,6 +14,7 @@ export function ImageDropZone({ inputId, onFile }: ImageDropZoneProps) {
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         e.preventDefault();
+        e.stopPropagation(); // 親のドロップ差し替えハンドラと二重処理しない
         const file = e.dataTransfer.files?.[0];
         if (file) onFile(file);
       }}

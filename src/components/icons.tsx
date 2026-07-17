@@ -108,6 +108,20 @@ const ICONS: Record<string, (props: IconProps) => JSX.Element> = {
       <line x1="12" x2="12" y1="3" y2="15" />
     </Svg>
   ),
+  /** ワイパー比較のハンドル。 */
+  'chevrons-left-right': (p) => (
+    <Svg {...p}>
+      <path d="m9 7-5 5 5 5" />
+      <path d="m15 7 5 5-5 5" />
+    </Svg>
+  ),
+  /** サイドバー開閉。 */
+  'panel-left': (p) => (
+    <Svg {...p}>
+      <rect width="18" height="18" x="3" y="3" rx="2" />
+      <path d="M9 3v18" />
+    </Svg>
+  ),
   /** フォールバック。 */
   box: (p) => (
     <Svg {...p}>
