@@ -13,7 +13,10 @@ export interface ToolMeta {
   description: string;
   /** 任意。一覧での絞り込み・分類用。 */
   tags?: string[];
-  /** 任意。サイドバーや一覧に表示する絵文字アイコン（例: "✂️"）。 */
+  /**
+   * 任意。サイドバーや一覧に表示するアイコン名（例: "scissors"）。
+   * 使用可能な名前は src/components/icons.tsx を参照。絵文字は使わない。
+   */
   icon?: string;
 }
 

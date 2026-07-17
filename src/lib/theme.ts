@@ -30,9 +30,9 @@ export function nextTheme(current: Theme): Theme {
   }
 }
 
-/** UI 表示用のラベルとアイコン。 */
+/** UI 表示用のラベルとアイコン名（src/components/icons.tsx のアイコンを参照）。 */
 export const THEME_LABELS: Record<Theme, { icon: string; label: string }> = {
-  dark: { icon: '🌙', label: 'ダーク' },
-  light: { icon: '☀️', label: 'ライト' },
-  system: { icon: '🖥️', label: 'OS に合わせる' },
+  dark: { icon: 'moon', label: 'ダーク' },
+  light: { icon: 'sun', label: 'ライト' },
+  system: { icon: 'monitor', label: 'OS に合わせる' },
 };

@@ -16,7 +16,7 @@ export const meta: ToolMeta = {
   description:
     '画像の上をブラシでなぞってマスク画像（白黒）を作成します。Ctrl+ホイールでブラシサイズを変更できます。',
   tags: ['image'],
-  icon: '🖼️',
+  icon: 'brush',
 };
 
 type BrushMode = 'paint' | 'erase';
@@ -175,11 +175,11 @@ export default function ImageMaskEditor() {
       />
 
       {!image ? (
-        <ImageDropZone inputId="mask-image-input" icon="🖼️" onFile={loadFile} />
+        <ImageDropZone inputId="mask-image-input" onFile={loadFile} />
       ) : (
         <>
           {/* ツールバー */}
-          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
             <BrushModeToggle
               value={mode}
               onChange={setMode}
@@ -194,20 +194,20 @@ export default function ImageMaskEditor() {
                 type="button"
                 onClick={undo}
                 disabled={undoCount === 0}
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
                 元に戻す
               </button>
               <button
                 type="button"
                 onClick={clearMask}
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
                 全消去
               </button>
             </div>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
             画像の上をドラッグしてマスクを塗ります。<kbd>Ctrl</kbd>+ホイールでブラシサイズを変更。
           </p>
 
@@ -215,7 +215,7 @@ export default function ImageMaskEditor() {
           <div
             ref={brush.wrapRef}
             data-testid="mask-canvas-area"
-            className="relative inline-block max-w-full cursor-crosshair overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800"
+            className="relative inline-block max-w-full cursor-crosshair overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800"
             onPointerLeave={brush.onWrapPointerLeave}
           >
             <canvas ref={baseCanvasRef} className="block max-w-full" />
@@ -228,19 +228,19 @@ export default function ImageMaskEditor() {
             <div
               ref={brush.cursorElRef}
               aria-hidden
-              className="pointer-events-none absolute rounded-full border border-blue-500 bg-blue-500/10"
+              className="pointer-events-none absolute rounded-full border border-white/90 shadow-[0_0_0_1px_rgba(0,0,0,0.6)]"
               style={{ display: 'none' }}
             />
           </div>
 
           {/* 出力 */}
-          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
-            <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+            <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
               <input
                 type="checkbox"
                 checked={invertExport}
                 onChange={(e) => setInvertExport(e.target.checked)}
-                className="accent-blue-600"
+                className="accent-zinc-700 dark:accent-zinc-300"
               />
               反転して出力（塗った部分を黒/透過に）
             </label>
@@ -250,7 +250,7 @@ export default function ImageMaskEditor() {
                 onClick={downloadMask}
                 disabled={maskEmpty}
                 title={maskEmpty ? '先にマスクを塗ってください' : undefined}
-                className="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-40"
+                className="rounded-md bg-zinc-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
               >
                 マスク画像を保存
               </button>
@@ -259,19 +259,19 @@ export default function ImageMaskEditor() {
                 onClick={downloadCutout}
                 disabled={maskEmpty}
                 title={maskEmpty ? '先にマスクを塗ってください' : undefined}
-                className="rounded-md border border-blue-600 px-4 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-40 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-950"
+                className="rounded-md border border-zinc-400 px-4 py-1.5 text-sm font-medium text-zinc-800 hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
               >
                 切り抜き画像を保存
               </button>
               <label
                 htmlFor="mask-image-input"
-                className="cursor-pointer rounded-md border border-slate-300 px-4 py-1.5 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                className="cursor-pointer rounded-md border border-zinc-300 px-4 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
                 別の画像を選択
               </label>
             </div>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
             マスク画像は塗った部分が白・それ以外が黒の PNG です（{image.width}×{image.height}）。
           </p>
         </>

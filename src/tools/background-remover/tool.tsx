@@ -17,14 +17,14 @@ export const meta: ToolMeta = {
   description:
     '画像の背景を自動（AI モデル）または手動ブラシで除去して透過 PNG を出力します。すべてブラウザ内で処理されます。',
   tags: ['image', 'ai'],
-  icon: '✂️',
+  icon: 'scissors',
 };
 
 type BrushMode = 'erase' | 'restore';
 
 // 透過部分を示すチェッカーボード背景（ライト/ダーク両対応）
 const CHECKER_CLASS =
-  'bg-[length:16px_16px] bg-[conic-gradient(#e2e8f0_0_25%,#f8fafc_0_50%,#e2e8f0_0_75%,#f8fafc_0)] dark:bg-[conic-gradient(#334155_0_25%,#1e293b_0_50%,#334155_0_75%,#1e293b_0)]';
+  'bg-[length:16px_16px] bg-[conic-gradient(#e4e4e7_0_25%,#fafafa_0_50%,#e4e4e7_0_75%,#fafafa_0)] dark:bg-[conic-gradient(#3f3f46_0_25%,#18181b_0_50%,#3f3f46_0_75%,#18181b_0)]';
 
 export default function BackgroundRemover() {
   const [image, setImage] = useState<{ name: string; width: number; height: number } | null>(null);
@@ -204,13 +204,13 @@ export default function BackgroundRemover() {
       />
 
       {!image ? (
-        <ImageDropZone inputId="bg-image-input" icon="✂️" onFile={loadFile} />
+        <ImageDropZone inputId="bg-image-input" onFile={loadFile} />
       ) : (
         <>
           {/* 自動除去 */}
-          <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+          <div className="space-y-2 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
             <div className="flex flex-wrap items-center gap-3">
-              <label htmlFor="bg-model" className="text-sm text-slate-600 dark:text-slate-400">
+              <label htmlFor="bg-model" className="text-sm text-zinc-600 dark:text-zinc-400">
                 モデル
               </label>
               <select
@@ -218,7 +218,7 @@ export default function BackgroundRemover() {
                 value={modelIndex}
                 onChange={(e) => setModelIndex(Number(e.target.value))}
                 disabled={busy}
-                className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+                className="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800"
               >
                 {BG_MODELS.map((m, i) => (
                   <option key={m.id} value={i}>
@@ -230,11 +230,11 @@ export default function BackgroundRemover() {
                 type="button"
                 onClick={runAutoRemove}
                 disabled={busy}
-                className="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-40"
+                className="rounded-md bg-zinc-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
               >
                 {busy ? '処理中...' : '自動で背景を除去'}
               </button>
-              <span className="text-xs text-slate-500 dark:text-slate-400">
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">
                 初回はモデルのダウンロードがあります（ブラウザ内で処理・画像は送信されません。処理中は画面が固まる場合があります）
               </span>
             </div>
@@ -244,15 +244,15 @@ export default function BackgroundRemover() {
                   className={`text-sm ${
                     autoStatus.phase === 'error'
                       ? 'text-red-600 dark:text-red-400'
-                      : 'text-slate-600 dark:text-slate-400'
+                      : 'text-zinc-600 dark:text-zinc-400'
                   }`}
                 >
                   {autoStatus.message}
                 </p>
                 {typeof autoStatus.progress === 'number' && (
-                  <div className="h-1.5 w-full overflow-hidden rounded bg-slate-200 dark:bg-slate-800">
+                  <div className="h-1.5 w-full overflow-hidden rounded bg-zinc-200 dark:bg-zinc-800">
                     <div
-                      className="h-full rounded bg-blue-600 transition-[width]"
+                      className="h-full rounded bg-zinc-700 transition-[width] dark:bg-zinc-200"
                       style={{ width: `${autoStatus.progress}%` }}
                     />
                   </div>
@@ -262,7 +262,7 @@ export default function BackgroundRemover() {
           </div>
 
           {/* 手動ブラシ */}
-          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
             <BrushModeToggle
               value={mode}
               onChange={setMode}
@@ -277,7 +277,7 @@ export default function BackgroundRemover() {
                 type="button"
                 onClick={undo}
                 disabled={undoCount === 0 || busy}
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
                 元に戻す
               </button>
@@ -285,13 +285,13 @@ export default function BackgroundRemover() {
                 type="button"
                 onClick={resetMask}
                 disabled={busy}
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
                 リセット
               </button>
             </div>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
             「消す」でドラッグした部分が透過になります。<kbd>Ctrl</kbd>
             +ホイールでブラシサイズを変更。
           </p>
@@ -300,7 +300,7 @@ export default function BackgroundRemover() {
           <div
             ref={brush.wrapRef}
             data-testid="bg-canvas-area"
-            className={`relative inline-block max-w-full cursor-crosshair overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800 ${CHECKER_CLASS}`}
+            className={`relative inline-block max-w-full cursor-crosshair overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800 ${CHECKER_CLASS}`}
             onPointerLeave={brush.onWrapPointerLeave}
           >
             <canvas
@@ -312,14 +312,14 @@ export default function BackgroundRemover() {
             <div
               ref={brush.cursorElRef}
               aria-hidden
-              className="pointer-events-none absolute rounded-full border border-blue-500 bg-blue-500/10"
+              className="pointer-events-none absolute rounded-full border border-white/90 shadow-[0_0_0_1px_rgba(0,0,0,0.6)]"
               style={{ display: 'none' }}
             />
           </div>
 
           {/* 出力 */}
-          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
-            <span className="text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">
               透過 PNG（{image.width}×{image.height}）
             </span>
             <div className="ml-auto flex flex-wrap gap-2">
@@ -327,16 +327,16 @@ export default function BackgroundRemover() {
                 type="button"
                 onClick={downloadResult}
                 disabled={busy}
-                className="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-40"
+                className="rounded-md bg-zinc-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
               >
                 透過 PNG を保存
               </button>
               <label
                 htmlFor="bg-image-input"
-                className={`rounded-md border border-slate-300 px-4 py-1.5 text-sm text-slate-700 dark:border-slate-700 dark:text-slate-300 ${
+                className={`rounded-md border border-zinc-300 px-4 py-1.5 text-sm text-zinc-700 dark:border-zinc-700 dark:text-zinc-300 ${
                   busy
                     ? 'cursor-not-allowed opacity-40'
-                    : 'cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800'
+                    : 'cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800'
                 }`}
               >
                 別の画像を選択
