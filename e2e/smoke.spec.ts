@@ -26,6 +26,27 @@ test('テーマを切り替えられる', async ({ page }) => {
   await expect(html).toHaveClass(/dark/);
 });
 
+test('サイドバーを開閉できる（ボタン / Ctrl+B / 記憶）', async ({ page }) => {
+  await page.goto('/');
+  const sidebarLink = page.locator('aside').getByRole('link', { name: 'マスク画像作成' });
+  await expect(sidebarLink).toBeVisible();
+
+  // ボタンで閉じる
+  await page.getByRole('button', { name: 'サイドバーを開閉' }).click();
+  await expect(sidebarLink).not.toBeVisible();
+
+  // Ctrl+B で開く
+  await page.keyboard.press('Control+b');
+  await expect(sidebarLink).toBeVisible();
+
+  // 閉じた状態はリロード後も維持される
+  await page.keyboard.press('Control+b');
+  await expect(sidebarLink).not.toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Web MiniTools' })).toBeVisible();
+  await expect(sidebarLink).not.toBeVisible();
+});
+
 test('文字数カウンターが動作する', async ({ page }) => {
   await page.goto('/');
   await page
