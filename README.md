@@ -1,21 +1,36 @@
-# Web MiniTools Template
+# Web MiniTools — Image Tools
 
-ブラウザで動く小さなツールを**量産する**ためのテンプレート。
-仕様を Claude Code に渡せば、実装〜動作確認〜スクリーンショット〜ドキュメント整備まで自律的に進められ、**PR レビューで実物を触りながら成果物を評価できる**ことを狙った構成になっている。
+ブラウザだけで完結する画像編集ツール集。**すべての処理はクライアントサイドで実行され、画像がサーバへ送信されることはない**（AI 機能もブラウザ内で推論する）。
 
-## 特徴
+公開ページ: **https://nitou-kanazawa.github.io/app-web-ImageTools/**
 
-- 🧩 **ツールはフォルダを1つ追加するだけ** — `src/tools/<name>/` を置けば一覧・ルーティングに自動登録（`registry.ts` の編集不要）
-- 🤖 **Claude が自己検証できる** — Playwright でツールを起動・操作し、スクリーンショットを撮影
-- 👀 **PR で実物を触れる** — PR ごとに GitHub Pages へプレビューを公開し、URL を自動コメント
-- ✅ **品質ゲート** — CI で typecheck / lint / format / test / build / E2E を実行
-- 📄 **ドキュメント整備済み** — `CLAUDE.md` に作業規約、`docs/` に追加ガイド
+## ツール
+
+| ツール             | 内容                                                                                                                                        |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **マスク画像作成** | 画像の上をブラシでなぞって白黒マスク PNG を作成。Ctrl+ホイールでブラシサイズ変更、undo、反転出力、マスク適用済みの切り抜き PNG 出力にも対応 |
+| **背景除去**       | AI による自動除去（人物向け / 汎用モデルを選択）+ 手動ブラシ（消す / 戻す）で微調整。透過 PNG を出力                                        |
+| **深度マップ生成** | Depth Anything V2 で深度マップを自動生成。横並び / ワイパー式の重ねて比較、カラーマップ切替（グレー / 反転 / Viridis / Inferno）、PNG 出力  |
+| 文字数カウンター   | テキストの文字数・単語数・行数をリアルタイム表示（サンプルツール）                                                                          |
+
+### 共通の操作
+
+- 画像は**ドラッグ&ドロップ / Ctrl+V（貼り付け）**でいつでも差し替え可能（連続処理向け）
+- **VS Code 風の UI** — サイドバー（Ctrl+B で開閉）・ステータスバー・テーマ切替（ダーク / ライト / OS 連動）
+- 深度マップは「読み込み時に自動生成」を ON にすると、ドロップするだけで結果が出る
+
+### AI 機能について
+
+- モデル（[Transformers.js](https://github.com/huggingface/transformers.js) + ONNX Runtime）は初回利用時に Hugging Face Hub からブラウザが直接ダウンロードし、以降はキャッシュされる
+  - 背景除去: `Xenova/modnet`（人物向け・約25MB）/ `onnx-community/BiRefNet_lite`（汎用・約50MB）
+  - 深度推定: `onnx-community/depth-anything-v2-small`（約25MB）
+- WebGPU が使える環境では GPU で、使えない環境では WASM（CPU）で推論する
 
 ## 技術スタック
 
-Vite + React + TypeScript / Tailwind CSS / react-router-dom / Vitest / Playwright
+Vite + React + TypeScript / Tailwind CSS / react-router-dom (HashRouter) / Transformers.js / Vitest / Playwright
 
-## クイックスタート
+## 開発
 
 ```bash
 npm install
@@ -25,12 +40,12 @@ npm run e2e          # E2E テスト
 npm run screenshots  # 全ツールのスクショを screenshots/ に出力
 ```
 
+AI 機能の E2E（実モデルのダウンロード + 推論）はネットワークが必要なため CI でのみ実行される。ローカルで試す場合は `RUN_ML_E2E=1 npm run e2e` を使う。
+
 ## ツールを追加する
 
-`src/tools/<name>/tool.tsx` を作り、`meta` とコンポーネントを default export するだけ。
-詳しくは [docs/adding-a-tool.md](docs/adding-a-tool.md) と [CLAUDE.md](CLAUDE.md) を参照。
-
-サンプル: [`src/tools/word-counter/`](src/tools/word-counter/)
+`src/tools/<name>/tool.tsx` を作り、`meta` とコンポーネントを export するだけで一覧・ルーティングに自動登録される（`registry.ts` の編集不要）。
+規約・デザイン指針は [CLAUDE.md](CLAUDE.md)、雛形は [docs/adding-a-tool.md](docs/adding-a-tool.md) を参照。
 
 ## スクリプト一覧
 
@@ -47,28 +62,25 @@ npm run screenshots  # 全ツールのスクショを screenshots/ に出力
 | `npm run screenshots` | 全ツールのスクリーンショット撮影                      |
 | `npm run check`       | typecheck + lint + format:check + test + build を一括 |
 
-## GitHub Pages / PR プレビューのセットアップ
+## デプロイ
 
-PR プレビューと本番公開を有効にするには、リポジトリ側で一度だけ設定が必要:
-
-1. **Settings → Actions → General → Workflow permissions** を
-   **Read and write permissions** にする（`gh-pages` ブランチへの push とコメントのため）。
-2. 初回の `main` への push 後、`gh-pages` ブランチが作られる。
-3. **Settings → Pages** で **Source = Deploy from a branch**、
-   **Branch = `gh-pages` / (root)** を選択。
-4. 以降、
-   - `main` への push → 本番サイトを公開
-   - PR の作成/更新 → `pr-preview/pr-<番号>/` にプレビューを公開し、PR に URL をコメント
-   - PR のクローズ → プレビューを自動削除
+- `main` への push → `gh-pages` ブランチへビルドを公開（GitHub Pages）
+- PR の作成/更新 → `pr-preview/pr-<番号>/` にプレビューを公開し、PR に URL を自動コメント（クローズで削除）
+- CI（typecheck / lint / format / test / build / E2E + 実モデル推論）が品質ゲートとして走る
 
 ## ディレクトリ構成
 
 ```
 src/
   tools/            各ツール（1ツール1フォルダ） + 自動登録レジストリ
-  components/       共有 UI（一覧・レイアウト）
-e2e/                Playwright（smoke / screenshots）
+    image-mask-editor/   マスク画像作成
+    background-remover/  背景除去（自動 + 手動）
+    depth-estimator/     深度マップ生成
+    word-counter/        文字数カウンター（サンプル）
+  components/       共有 UI（AppShell / アイコン / トグル / ドロップゾーン など）
+  lib/              共有ロジック（ブラシ / undo / ML パイプライン / テーマ など）
+e2e/                Playwright（smoke / 各ツール / screenshots）
 docs/               追加ガイド
 .github/workflows/  CI・本番デプロイ・PR プレビュー
-CLAUDE.md           Claude Code 向けの作業規約
+CLAUDE.md           Claude Code 向けの作業規約・デザイン指針
 ```
