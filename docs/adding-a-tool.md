@@ -23,7 +23,7 @@ export const meta: ToolMeta = {
   title: 'マイツール',
   description: 'このツールが何をするかを1〜2文で。',
   tags: ['text'], // 任意
-  icon: '🧩', // 任意。サイドバー・一覧に表示される絵文字
+  icon: 'box', // 任意。src/components/icons.tsx のアイコン名（絵文字は使わない）
 };
 
 export default function MyTool() {

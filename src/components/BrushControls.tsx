@@ -13,7 +13,7 @@ export function BrushModeToggle<T extends string>({
   options,
 }: BrushModeToggleProps<T>) {
   return (
-    <div className="flex gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-950">
+    <div className="flex gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-950">
       {options.map((opt) => (
         <button
           key={opt.value}
@@ -22,8 +22,8 @@ export function BrushModeToggle<T extends string>({
           aria-pressed={value === opt.value}
           className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
             value === opt.value
-              ? 'bg-blue-600 text-white'
-              : 'bg-white text-slate-700 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+              ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+              : 'bg-white text-zinc-700 hover:bg-zinc-100 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700'
           }`}
         >
           {opt.label}
@@ -42,7 +42,7 @@ interface BrushSizeControlProps {
 export function BrushSizeControl({ value, onChange }: BrushSizeControlProps) {
   return (
     <div className="flex items-center gap-2">
-      <label htmlFor="brush-size" className="text-sm text-slate-600 dark:text-slate-400">
+      <label htmlFor="brush-size" className="text-sm text-zinc-600 dark:text-zinc-400">
         ブラシサイズ
       </label>
       <input
@@ -52,11 +52,11 @@ export function BrushSizeControl({ value, onChange }: BrushSizeControlProps) {
         max={BRUSH_MAX}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-32 accent-blue-600"
+        className="w-32 accent-zinc-700 dark:accent-zinc-300"
       />
       <span
         data-testid="brush-size-value"
-        className="w-10 text-right text-sm tabular-nums text-slate-600 dark:text-slate-400"
+        className="w-10 text-right text-sm tabular-nums text-zinc-600 dark:text-zinc-400"
       >
         {value}
       </span>

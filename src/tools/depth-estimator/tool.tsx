@@ -13,7 +13,7 @@ export const meta: ToolMeta = {
   description:
     '画像から深度マップ（近い/遠いの濃淡画像）を AI で自動生成します。すべてブラウザ内で処理されます。',
   tags: ['image', 'ai'],
-  icon: '🏔️',
+  icon: 'mountain',
 };
 
 export default function DepthEstimator() {
@@ -150,31 +150,28 @@ export default function DepthEstimator() {
       />
 
       {!image ? (
-        <ImageDropZone inputId="depth-image-input" icon="🏔️" onFile={loadFile} />
+        <ImageDropZone inputId="depth-image-input" onFile={loadFile} />
       ) : (
         <>
           {/* 実行 */}
-          <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+          <div className="space-y-2 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={runEstimate}
                 disabled={busy}
-                className="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-40"
+                className="rounded-md bg-zinc-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
               >
                 {busy ? '処理中...' : '深度マップを生成'}
               </button>
-              <label
-                htmlFor="depth-colormap"
-                className="text-sm text-slate-600 dark:text-slate-400"
-              >
+              <label htmlFor="depth-colormap" className="text-sm text-zinc-600 dark:text-zinc-400">
                 表示
               </label>
               <select
                 id="depth-colormap"
                 value={colormap}
                 onChange={(e) => changeColormap(e.target.value as ColormapName)}
-                className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+                className="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-800"
               >
                 {COLORMAPS.map((c) => (
                   <option key={c.value} value={c.value}>
@@ -182,7 +179,7 @@ export default function DepthEstimator() {
                   </option>
                 ))}
               </select>
-              <span className="text-xs text-slate-500 dark:text-slate-400">
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">
                 初回はモデルのダウンロードがあります（ブラウザ内で処理・画像は送信されません。処理中は画面が固まる場合があります）
               </span>
             </div>
@@ -192,15 +189,15 @@ export default function DepthEstimator() {
                   className={`text-sm ${
                     status.phase === 'error'
                       ? 'text-red-600 dark:text-red-400'
-                      : 'text-slate-600 dark:text-slate-400'
+                      : 'text-zinc-600 dark:text-zinc-400'
                   }`}
                 >
                   {status.message}
                 </p>
                 {typeof status.progress === 'number' && (
-                  <div className="h-1.5 w-full overflow-hidden rounded bg-slate-200 dark:bg-slate-800">
+                  <div className="h-1.5 w-full overflow-hidden rounded bg-zinc-200 dark:bg-zinc-800">
                     <div
-                      className="h-full rounded bg-blue-600 transition-[width]"
+                      className="h-full rounded bg-zinc-700 transition-[width] dark:bg-zinc-200"
                       style={{ width: `${status.progress}%` }}
                     />
                   </div>
@@ -212,27 +209,27 @@ export default function DepthEstimator() {
           {/* 元画像 / 深度マップ */}
           <div className="grid gap-4 sm:grid-cols-2">
             <figure className="space-y-1">
-              <figcaption className="text-xs text-slate-500 dark:text-slate-400">元画像</figcaption>
+              <figcaption className="text-xs text-zinc-500 dark:text-zinc-400">元画像</figcaption>
               <canvas
                 ref={sourceCanvasRef}
-                className="block max-w-full rounded-lg border border-slate-200 dark:border-slate-800"
+                className="block max-w-full rounded-lg border border-zinc-200 dark:border-zinc-800"
               />
             </figure>
             <figure className="space-y-1">
-              <figcaption className="text-xs text-slate-500 dark:text-slate-400">
+              <figcaption className="text-xs text-zinc-500 dark:text-zinc-400">
                 深度マップ（明るいほど手前）
               </figcaption>
               <canvas
                 ref={depthCanvasRef}
                 data-testid="depth-canvas"
-                className="block max-w-full rounded-lg border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-950"
+                className="block max-w-full rounded-lg border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-950"
               />
             </figure>
           </div>
 
           {/* 出力 */}
-          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
-            <span className="text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">
               PNG（{image.width}×{image.height}）
             </span>
             <div className="ml-auto flex flex-wrap gap-2">
@@ -241,16 +238,16 @@ export default function DepthEstimator() {
                 onClick={downloadDepth}
                 disabled={!hasResult || busy}
                 title={!hasResult ? '先に深度マップを生成してください' : undefined}
-                className="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-40"
+                className="rounded-md bg-zinc-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
               >
                 深度マップを保存
               </button>
               <label
                 htmlFor="depth-image-input"
-                className={`rounded-md border border-slate-300 px-4 py-1.5 text-sm text-slate-700 dark:border-slate-700 dark:text-slate-300 ${
+                className={`rounded-md border border-zinc-300 px-4 py-1.5 text-sm text-zinc-700 dark:border-zinc-700 dark:text-zinc-300 ${
                   busy
                     ? 'cursor-not-allowed opacity-40'
-                    : 'cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800'
+                    : 'cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800'
                 }`}
               >
                 別の画像を選択

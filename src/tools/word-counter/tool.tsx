@@ -8,7 +8,7 @@ export const meta: ToolMeta = {
   title: '文字数カウンター',
   description: 'テキストの文字数・単語数・行数をリアルタイムに数えます。',
   tags: ['text', 'sample'],
-  icon: '🔤',
+  icon: 'type',
 };
 
 export default function WordCounter() {
@@ -35,16 +35,16 @@ export default function WordCounter() {
         onChange={(e) => setText(e.target.value)}
         placeholder="ここにテキストを入力..."
         rows={8}
-        className="w-full resize-y rounded-lg border border-slate-300 bg-white p-4 font-mono text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900"
+        className="w-full resize-y rounded-lg border border-zinc-300 bg-white p-4 font-mono text-sm outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-900"
       />
       <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {items.map((item) => (
           <div
             key={item.key}
             data-testid={`stat-${item.key}`}
-            className="rounded-lg border border-slate-200 bg-white p-4 text-center dark:border-slate-800 dark:bg-slate-900"
+            className="rounded-lg border border-zinc-200 bg-white p-4 text-center dark:border-zinc-800 dark:bg-zinc-900"
           >
-            <dt className="text-xs text-slate-500 dark:text-slate-400">{item.label}</dt>
+            <dt className="text-xs text-zinc-500 dark:text-zinc-400">{item.label}</dt>
             <dd className="mt-1 text-2xl font-bold tabular-nums">{item.value}</dd>
           </div>
         ))}

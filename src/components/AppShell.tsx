@@ -4,9 +4,10 @@ import { tools } from '../tools/registry';
 import { StatusBarContext, type StatusItem } from '../lib/statusBar';
 import { THEME_LABELS, nextTheme } from '../lib/theme';
 import { useTheme } from '../lib/useTheme';
+import { Icon } from './icons';
 
 /**
- * VS Code 風のアプリ全体レイアウト。
+ * アプリ全体レイアウト（VS Code 風の構成 × モノトーンのトーン）。
  * 上: タイトルバー / 左: サイドバー（ツール一覧） / 中央: コンテンツ / 下: ステータスバー。
  */
 export function AppShell({ children }: { children: ReactNode }) {
@@ -33,35 +34,37 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [filter]);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-slate-50 text-slate-900 dark:bg-[#1e1e1e] dark:text-slate-200">
+    <div className="flex h-screen flex-col overflow-hidden bg-zinc-100 text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-200">
       {/* タイトルバー */}
-      <header className="relative flex h-9 shrink-0 items-center gap-2 border-b border-slate-300 bg-slate-200 px-2 text-sm dark:border-black/40 dark:bg-[#323233]">
+      <header className="relative flex h-10 shrink-0 items-center gap-2 border-b border-zinc-300 bg-zinc-50 px-2 text-sm dark:border-zinc-800 dark:bg-zinc-900">
         <button
           type="button"
           aria-label="サイドバーを開閉"
           onClick={() => setSidebarOpen((v) => !v)}
-          className="rounded px-2 py-0.5 hover:bg-slate-300 md:hidden dark:hover:bg-white/10"
+          className="rounded p-1.5 text-zinc-600 hover:bg-zinc-200 md:hidden dark:text-zinc-400 dark:hover:bg-white/10"
         >
-          ☰
+          <Icon name="menu" size={16} />
         </button>
         <Link
           to="/"
-          className="flex items-center gap-1.5 rounded px-1.5 py-0.5 font-medium hover:bg-slate-300 dark:hover:bg-white/10"
+          className="flex items-center gap-2 rounded px-2 py-1 hover:bg-zinc-200 dark:hover:bg-white/10"
         >
-          <span aria-hidden>🧰</span>
-          <span>Web MiniTools</span>
+          <Icon name="grid" size={15} className="text-zinc-700 dark:text-zinc-300" />
+          <span className="text-[13px] font-semibold uppercase tracking-[0.18em]">
+            Web MiniTools
+          </span>
         </Link>
-        <div className="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 text-xs text-slate-500 sm:block dark:text-slate-400">
-          {activeTool ? `${activeTool.meta.title} — Web MiniTools` : 'Web MiniTools'}
+        <div className="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 text-xs text-zinc-500 sm:block dark:text-zinc-500">
+          {activeTool ? activeTool.meta.title : ''}
         </div>
         <button
           type="button"
           onClick={cycleTheme}
           aria-label="テーマを切り替え"
           title={`テーマ: ${THEME_LABELS[theme].label}（クリックで${THEME_LABELS[nextTheme(theme)].label}へ）`}
-          className="ml-auto flex items-center gap-1.5 rounded px-2 py-0.5 text-xs hover:bg-slate-300 dark:hover:bg-white/10"
+          className="ml-auto flex items-center gap-1.5 rounded px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-200 dark:text-zinc-400 dark:hover:bg-white/10"
         >
-          <span aria-hidden>{THEME_LABELS[theme].icon}</span>
+          <Icon name={THEME_LABELS[theme].icon} size={14} />
           <span className="hidden sm:inline">{THEME_LABELS[theme].label}</span>
         </button>
       </header>
@@ -69,13 +72,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="relative flex min-h-0 flex-1">
         {/* サイドバー */}
         <aside
-          className={`absolute inset-y-0 left-0 z-20 w-64 shrink-0 flex-col border-r border-slate-300 bg-slate-100 md:static md:flex dark:border-black/40 dark:bg-[#252526] ${
+          className={`absolute inset-y-0 left-0 z-20 w-64 shrink-0 flex-col border-r border-zinc-300 bg-zinc-50 md:static md:flex dark:border-zinc-800 dark:bg-zinc-900 ${
             sidebarOpen ? 'flex' : 'hidden'
           }`}
         >
-          <div className="px-4 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <div className="px-4 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-500">
             ツール
-            <span className="ml-2 rounded-full bg-slate-300 px-1.5 text-[10px] tabular-nums text-slate-600 dark:bg-white/10 dark:text-slate-300">
+            <span className="ml-2 rounded-full bg-zinc-200 px-1.5 text-[10px] tabular-nums text-zinc-600 dark:bg-white/10 dark:text-zinc-400">
               {tools.length}
             </span>
           </div>
@@ -86,12 +89,12 @@ export function AppShell({ children }: { children: ReactNode }) {
               placeholder="検索..."
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs outline-none focus:border-blue-500 dark:border-black/40 dark:bg-[#3c3c3c] dark:text-slate-200 dark:placeholder:text-slate-500"
+              className="w-full rounded border border-zinc-300 bg-white px-2 py-1 text-xs outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:placeholder:text-zinc-500 dark:focus:border-zinc-500"
             />
           </div>
           <nav className="min-h-0 flex-1 overflow-y-auto pb-2">
             {visibleTools.length === 0 ? (
-              <p className="px-4 py-2 text-xs text-slate-500 dark:text-slate-400">
+              <p className="px-4 py-2 text-xs text-zinc-500 dark:text-zinc-500">
                 該当するツールがありません
               </p>
             ) : (
@@ -103,16 +106,14 @@ export function AppShell({ children }: { children: ReactNode }) {
                       onClick={() => setSidebarOpen(false)}
                       title={meta.description}
                       className={({ isActive }) =>
-                        `flex items-center gap-2 border-l-2 px-3 py-1.5 text-[13px] ${
+                        `flex items-center gap-2.5 border-l-2 px-3 py-1.5 text-[13px] ${
                           isActive
-                            ? 'border-blue-500 bg-slate-200 text-slate-900 dark:bg-[#37373d] dark:text-white'
-                            : 'border-transparent text-slate-700 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-[#2a2d2e]'
+                            ? 'border-zinc-900 bg-zinc-200 font-medium text-zinc-900 dark:border-zinc-100 dark:bg-zinc-800 dark:text-zinc-50'
+                            : 'border-transparent text-zinc-600 hover:bg-zinc-200/70 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200'
                         }`
                       }
                     >
-                      <span aria-hidden className="w-5 text-center">
-                        {meta.icon ?? '🧩'}
-                      </span>
+                      <Icon name={meta.icon ?? 'box'} size={14} className="shrink-0" />
                       <span className="truncate">{meta.title}</span>
                     </NavLink>
                   </li>
@@ -120,7 +121,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </ul>
             )}
           </nav>
-          <div className="border-t border-slate-300 px-4 py-2 text-[11px] text-slate-500 dark:border-black/40 dark:text-slate-500">
+          <div className="border-t border-zinc-300 px-4 py-2 text-[11px] text-zinc-500 dark:border-zinc-800 dark:text-zinc-600">
             すべてブラウザ内で処理されます
           </div>
         </aside>
@@ -130,7 +131,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             type="button"
             aria-label="サイドバーを閉じる"
             onClick={() => setSidebarOpen(false)}
-            className="absolute inset-0 z-10 bg-black/30 md:hidden"
+            className="absolute inset-0 z-10 bg-black/40 md:hidden"
           />
         )}
 
@@ -141,9 +142,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
 
       {/* ステータスバー */}
-      <footer className="flex h-6 shrink-0 items-center gap-1 overflow-hidden bg-[#007acc] px-2 text-[11px] text-white">
-        <span className="flex items-center gap-1 rounded px-1.5 hover:bg-white/15">
-          <span aria-hidden>⚡</span>
+      <footer className="flex h-6 shrink-0 items-center gap-1 overflow-hidden border-t border-zinc-800 bg-zinc-900 px-2 text-[11px] text-zinc-300 dark:bg-zinc-950 dark:text-zinc-400">
+        <span className="rounded px-1.5 tracking-wide">
           {activeTool ? activeTool.meta.title : '準備完了'}
         </span>
         <div className="ml-auto flex items-center gap-1">
@@ -152,7 +152,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               key={item.key}
               title={item.title}
               data-testid={`status-${item.key}`}
-              className="rounded px-1.5 tabular-nums hover:bg-white/15"
+              className="rounded px-1.5 tabular-nums hover:bg-white/10"
             >
               {item.text}
             </span>
