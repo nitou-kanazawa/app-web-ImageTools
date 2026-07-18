@@ -4,12 +4,14 @@ import { drawSegment, hasMaskPixels } from '../../lib/brush';
 import { downloadImageData, exportFileName } from '../../lib/download';
 import { loadImageFile } from '../../lib/loadImageFile';
 import { useBrushEditor } from '../../lib/useBrushEditor';
+import { useCanvasViewport } from '../../lib/useCanvasViewport';
 import { useMaskUndo } from '../../lib/useMaskUndo';
 import { BrushModeToggle, BrushSizeControl } from '../../components/BrushControls';
 import { ImageDropZone } from '../../components/ImageDropZone';
 import { useStatusItems } from '../../lib/statusBar';
 import { useImageFileTarget } from '../../lib/useImageFileTarget';
 import { DropOverlay } from '../../components/DropOverlay';
+import { ZoomControls } from '../../components/ZoomControls';
 import { applyMaskAlpha, maskToBlackWhite } from './logic';
 
 export const meta: ToolMeta = {
@@ -52,7 +54,12 @@ export default function ImageMaskEditor() {
     ctx.globalCompositeOperation = 'source-over';
   }, []);
 
+  const vp = useCanvasViewport(image ? { width: image.width, height: image.height } : null);
+
   const brush = useBrushEditor({
+    // パン操作中はストロークを受け付けない
+    enabled: !vp.spaceHeld && !vp.panning,
+    cursorScale: vp.zoom,
     onStrokeStart: () => pushUndo(),
     onStroke: (point, last) => {
       const maskCtx = maskCanvasRef.current?.getContext('2d');
@@ -134,6 +141,7 @@ export default function ImageMaskEditor() {
       ? [
           { key: 'size', text: `${image.width}×${image.height}px`, title: '画像サイズ' },
           { key: 'brush', text: `ブラシ ${brush.brushSize}px`, title: 'Ctrl+ホイールで変更' },
+          { key: 'zoom', text: `${Math.round(vp.zoom * 100)}%`, title: 'ズーム（ホイールで変更）' },
           { key: 'mode', text: mode === 'paint' ? 'ブラシ' : '消しゴム' },
         ]
       : [],
@@ -222,28 +230,53 @@ export default function ImageMaskEditor() {
               </button>
             </div>
           </div>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            画像の上をドラッグしてマスクを塗ります。<kbd>Ctrl</kbd>+ホイールでブラシサイズを変更。
-          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              ドラッグで塗り / <kbd>Ctrl</kbd>+ホイール: ブラシサイズ / ホイール: ズーム /
+              中ボタン・<kbd>Space</kbd>+ドラッグ: 移動
+            </p>
+            <div className="ml-auto">
+              <ZoomControls
+                zoom={vp.zoom}
+                onZoomIn={vp.zoomIn}
+                onZoomOut={vp.zoomOut}
+                onFit={vp.fit}
+                onZoom100={vp.zoom100}
+              />
+            </div>
+          </div>
 
-          {/* キャンバス */}
+          {/* キャンバス（ズーム/パンはビューポート内の transform で行う） */}
           <div
-            ref={brush.wrapRef}
+            ref={(el) => {
+              brush.wrapRef(el);
+              vp.viewportRef.current = el;
+            }}
             data-testid="mask-canvas-area"
-            className="relative inline-block max-w-full cursor-crosshair overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800"
+            className={`relative h-[60vh] min-h-[320px] w-full touch-none overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-950 ${
+              vp.panning ? 'cursor-grabbing' : vp.spaceHeld ? 'cursor-grab' : 'cursor-crosshair'
+            }`}
             onPointerLeave={brush.onWrapPointerLeave}
+            {...vp.viewportHandlers}
+            onPointerMove={(e) => {
+              vp.viewportHandlers.onPointerMove(e);
+              brush.onWrapPointerMove(e); // 画像の外（余白）ではプレビューを隠す
+            }}
           >
-            <canvas ref={baseCanvasRef} className="block max-w-full" />
-            <canvas
-              ref={overlayCanvasRef}
-              data-testid="mask-overlay"
-              className="absolute inset-0 h-full w-full touch-none opacity-50"
-              {...brush.pointerHandlers}
-            />
+            <div style={vp.contentStyle} className="relative">
+              <canvas ref={baseCanvasRef} className="block" />
+              <canvas
+                ref={overlayCanvasRef}
+                data-testid="mask-overlay"
+                className="absolute inset-0 h-full w-full touch-none opacity-50"
+                {...brush.pointerHandlers}
+              />
+            </div>
+            {/* transform の影響を受けないよう、カーソルプレビューはコンテンツの外に fixed で置く */}
             <div
               ref={brush.cursorElRef}
               aria-hidden
-              className="pointer-events-none absolute rounded-full border border-white/90 shadow-[0_0_0_1px_rgba(0,0,0,0.6)]"
+              className="pointer-events-none fixed rounded-full border border-white/90 shadow-[0_0_0_1px_rgba(0,0,0,0.6)]"
               style={{ display: 'none' }}
             />
           </div>

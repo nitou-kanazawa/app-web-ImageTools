@@ -4,6 +4,11 @@ import { BRUSH_DEFAULT, nextBrushSize, screenToImage } from './brush';
 export interface BrushEditorOptions {
   /** false の間はストロークを受け付けない（自動処理中など）。 */
   enabled?: boolean;
+  /**
+   * 画像の表示倍率（ズーム）。カーソルプレビューの大きさに反映する。
+   * ポインタが動かなくてもズーム変更へ追従させるため props で受け取る。
+   */
+  cursorScale?: number;
   /** ストローク開始時（undo スナップショットを積むタイミング）。 */
   onStrokeStart?: () => void;
   /** セグメント描画。last が null なら開始点のドット。座標は画像ピクセル。 */
@@ -44,6 +49,8 @@ export function useBrushEditor(options: BrushEditorOptions) {
   // Ctrl+ホイールのリスナーを付けるラッパー要素（画像ロード後にマウントされるため state で追跡）
   const [wrapEl, setWrapEl] = useState<HTMLDivElement | null>(null);
 
+  // カーソルプレビューは position: fixed でビューポート座標に置く
+  // （ズーム用の transform が掛かった要素の内側でも座標計算が壊れないようにする）
   const updateCursorEl = useCallback(() => {
     const el = cursorElRef.current;
     const h = hoverRef.current;
@@ -64,6 +71,14 @@ export function useBrushEditor(options: BrushEditorOptions) {
   useEffect(() => {
     updateCursorEl();
   }, [brushSize, updateCursorEl]);
+
+  // ホイールズームなど、ポインタが動かなくても倍率変更をプレビューに反映する
+  const cursorScale = options.cursorScale;
+  useEffect(() => {
+    if (cursorScale === undefined) return;
+    hoverRef.current.scale = cursorScale;
+    updateCursorEl();
+  }, [cursorScale, updateCursorEl]);
 
   // Ctrl+ホイールでブラシサイズ変更（ブラウザズームを抑止するため passive: false で登録）
   useEffect(() => {
@@ -96,8 +111,8 @@ export function useBrushEditor(options: BrushEditorOptions) {
       const canvas = e.currentTarget;
       const rect = canvas.getBoundingClientRect();
       hoverRef.current = {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
+        x: e.clientX,
+        y: e.clientY,
         scale: rect.width > 0 && canvas.width > 0 ? rect.width / canvas.width : 1,
         visible: true,
       };
@@ -123,6 +138,19 @@ export function useBrushEditor(options: BrushEditorOptions) {
     updateCursorEl();
   }, [updateCursorEl]);
 
+  // ビューポートが画像より大きいレイアウトでは、画像の外（余白）へ出ても
+  // ラッパーの pointerleave は発火しない。余白上ではプレビューを隠す。
+  const onWrapPointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (drawingRef.current.active) return; // ストローク中はキャプチャ先（キャンバス）が処理する
+      if (!(e.target instanceof HTMLCanvasElement) && hoverRef.current.visible) {
+        hoverRef.current.visible = false;
+        updateCursorEl();
+      }
+    },
+    [updateCursorEl],
+  );
+
   return {
     brushSize,
     setBrushSize,
@@ -138,5 +166,6 @@ export function useBrushEditor(options: BrushEditorOptions) {
       onPointerCancel: endStroke,
     },
     onWrapPointerLeave,
+    onWrapPointerMove,
   };
 }

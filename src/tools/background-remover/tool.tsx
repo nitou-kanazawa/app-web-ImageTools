@@ -4,12 +4,14 @@ import { drawSegment, strokeDirtyRect } from '../../lib/brush';
 import { downloadCanvasPng, exportFileName } from '../../lib/download';
 import { loadImageFile } from '../../lib/loadImageFile';
 import { useBrushEditor } from '../../lib/useBrushEditor';
+import { useCanvasViewport } from '../../lib/useCanvasViewport';
 import { useMaskUndo } from '../../lib/useMaskUndo';
 import { BrushModeToggle, BrushSizeControl } from '../../components/BrushControls';
 import { ImageDropZone } from '../../components/ImageDropZone';
 import { useStatusItems } from '../../lib/statusBar';
 import { useImageFileTarget } from '../../lib/useImageFileTarget';
 import { DropOverlay } from '../../components/DropOverlay';
+import { ZoomControls } from '../../components/ZoomControls';
 import { statusFromProgressEvent, type AutoStatus } from '../../lib/mlStatus';
 import { BG_MODELS, alphaToWhiteMask, isFullyOpaque } from './logic';
 
@@ -64,8 +66,12 @@ export default function BackgroundRemover() {
     ctx.restore();
   }, []);
 
+  const vp = useCanvasViewport(image ? { width: image.width, height: image.height } : null);
+
   const brush = useBrushEditor({
-    enabled: !busy,
+    // 自動処理中とパン操作中はストロークを受け付けない
+    enabled: !busy && !vp.spaceHeld && !vp.panning,
+    cursorScale: vp.zoom,
     onStrokeStart: () => pushUndo(),
     onStroke: (point, last) => {
       const mask = maskCanvasRef.current;
@@ -146,6 +152,7 @@ export default function BackgroundRemover() {
       ? [
           { key: 'size', text: `${image.width}×${image.height}px`, title: '画像サイズ' },
           { key: 'brush', text: `ブラシ ${brush.brushSize}px`, title: 'Ctrl+ホイールで変更' },
+          { key: 'zoom', text: `${Math.round(vp.zoom * 100)}%`, title: 'ズーム（ホイールで変更）' },
           { key: 'mode', text: mode === 'erase' ? '消す' : '戻す' },
           ...(autoStatus.phase !== 'idle'
             ? [{ key: 'auto', text: autoStatus.message, title: '自動背景除去の状態' }]
@@ -307,28 +314,53 @@ export default function BackgroundRemover() {
               </button>
             </div>
           </div>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            「消す」でドラッグした部分が透過になります。<kbd>Ctrl</kbd>
-            +ホイールでブラシサイズを変更。
-          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              「消す」でドラッグした部分が透過に / <kbd>Ctrl</kbd>+ホイール: ブラシサイズ /
+              ホイール: ズーム / 中ボタン・<kbd>Space</kbd>+ドラッグ: 移動
+            </p>
+            <div className="ml-auto">
+              <ZoomControls
+                zoom={vp.zoom}
+                onZoomIn={vp.zoomIn}
+                onZoomOut={vp.zoomOut}
+                onFit={vp.fit}
+                onZoom100={vp.zoom100}
+              />
+            </div>
+          </div>
 
-          {/* キャンバス */}
+          {/* キャンバス（ズーム/パンはビューポート内の transform で行う） */}
           <div
-            ref={brush.wrapRef}
+            ref={(el) => {
+              brush.wrapRef(el);
+              vp.viewportRef.current = el;
+            }}
             data-testid="bg-canvas-area"
-            className={`relative inline-block max-w-full cursor-crosshair overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800 ${CHECKER_CLASS}`}
+            className={`relative h-[60vh] min-h-[320px] w-full touch-none overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-950 ${
+              vp.panning ? 'cursor-grabbing' : vp.spaceHeld ? 'cursor-grab' : 'cursor-crosshair'
+            }`}
             onPointerLeave={brush.onWrapPointerLeave}
+            {...vp.viewportHandlers}
+            onPointerMove={(e) => {
+              vp.viewportHandlers.onPointerMove(e);
+              brush.onWrapPointerMove(e); // 画像の外（余白）ではプレビューを隠す
+            }}
           >
-            <canvas
-              ref={displayCanvasRef}
-              data-testid="bg-display"
-              className="block max-w-full touch-none"
-              {...brush.pointerHandlers}
-            />
+            {/* チェッカーボードは画像部分（コンテンツ）にだけ敷く */}
+            <div style={vp.contentStyle} className={`relative ${CHECKER_CLASS}`}>
+              <canvas
+                ref={displayCanvasRef}
+                data-testid="bg-display"
+                className="block touch-none"
+                {...brush.pointerHandlers}
+              />
+            </div>
+            {/* transform の影響を受けないよう、カーソルプレビューはコンテンツの外に fixed で置く */}
             <div
               ref={brush.cursorElRef}
               aria-hidden
-              className="pointer-events-none absolute rounded-full border border-white/90 shadow-[0_0_0_1px_rgba(0,0,0,0.6)]"
+              className="pointer-events-none fixed rounded-full border border-white/90 shadow-[0_0_0_1px_rgba(0,0,0,0.6)]"
               style={{ display: 'none' }}
             />
           </div>
