@@ -71,6 +71,7 @@ export default function BackgroundRemover() {
   const brush = useBrushEditor({
     // 自動処理中とパン操作中はストロークを受け付けない
     enabled: !busy && !vp.spaceHeld && !vp.panning,
+    cursorScale: vp.zoom,
     onStrokeStart: () => pushUndo(),
     onStroke: (point, last) => {
       const mask = maskCanvasRef.current;
@@ -341,6 +342,10 @@ export default function BackgroundRemover() {
             }`}
             onPointerLeave={brush.onWrapPointerLeave}
             {...vp.viewportHandlers}
+            onPointerMove={(e) => {
+              vp.viewportHandlers.onPointerMove(e);
+              brush.onWrapPointerMove(e); // 画像の外（余白）ではプレビューを隠す
+            }}
           >
             {/* チェッカーボードは画像部分（コンテンツ）にだけ敷く */}
             <div style={vp.contentStyle} className={`relative ${CHECKER_CLASS}`}>

@@ -59,6 +59,7 @@ export default function ImageMaskEditor() {
   const brush = useBrushEditor({
     // パン操作中はストロークを受け付けない
     enabled: !vp.spaceHeld && !vp.panning,
+    cursorScale: vp.zoom,
     onStrokeStart: () => pushUndo(),
     onStroke: (point, last) => {
       const maskCtx = maskCanvasRef.current?.getContext('2d');
@@ -257,6 +258,10 @@ export default function ImageMaskEditor() {
             }`}
             onPointerLeave={brush.onWrapPointerLeave}
             {...vp.viewportHandlers}
+            onPointerMove={(e) => {
+              vp.viewportHandlers.onPointerMove(e);
+              brush.onWrapPointerMove(e); // 画像の外（余白）ではプレビューを隠す
+            }}
           >
             <div style={vp.contentStyle} className="relative">
               <canvas ref={baseCanvasRef} className="block" />

@@ -78,6 +78,13 @@ export function useCanvasViewport(content: { width: number; height: number } | n
     // content の実体（サイズ）が変わったときだけで良い
   }, [content?.width, content?.height, fit]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // パン中に画像がクリアされた（ビューポートがアンマウントされた）場合の後始末
+  useEffect(() => {
+    if (content) return;
+    panDragRef.current = null;
+    setPanning(false);
+  }, [content !== null]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ホイールズーム（ブラウザのページズーム/スクロールを抑止するため passive: false）
   useEffect(() => {
     const vp = viewportRef.current;
@@ -111,11 +118,15 @@ export function useCanvasViewport(content: { width: number; height: number } | n
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.code === 'Space') setSpaceHeld(false);
     };
+    // Alt+Tab などでフォーカスを失うと keyup が届かないので、blur でも解除する
+    const onBlur = () => setSpaceHeld(false);
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
     return () => {
       document.removeEventListener('keydown', onKeyDown);
       document.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onBlur);
     };
   }, [fit, zoom100]);
 
