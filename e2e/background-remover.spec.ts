@@ -17,6 +17,13 @@ async function transparentCount(page: Page): Promise<number> {
   });
 }
 
+/** 画像キャンバス（描画対象）の見た目上の矩形を返す。 */
+async function canvasBox(page: Page) {
+  const box = await page.getByTestId('bg-display').boundingBox();
+  if (!box) throw new Error('canvas not found');
+  return box;
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto('/#/tools/background-remover');
   await page.getByLabel('対象画像').setInputFiles(FIXTURE);
@@ -24,9 +31,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('手動ブラシで消す・戻すができる', async ({ page }) => {
-  const area = page.getByTestId('bg-canvas-area');
-  const box = await area.boundingBox();
-  if (!box) throw new Error('canvas area not found');
+  const box = await canvasBox(page);
 
   // 初期状態は全ピクセル不透明
   expect(await transparentCount(page)).toBe(0);
@@ -53,9 +58,7 @@ test('手動ブラシで消す・戻すができる', async ({ page }) => {
 });
 
 test('元に戻す・リセットが機能する', async ({ page }) => {
-  const area = page.getByTestId('bg-canvas-area');
-  const box = await area.boundingBox();
-  if (!box) throw new Error('canvas area not found');
+  const box = await canvasBox(page);
 
   await expect(page.getByRole('button', { name: '元に戻す' })).toBeDisabled();
 
@@ -80,9 +83,7 @@ test('元に戻す・リセットが機能する', async ({ page }) => {
 });
 
 test('Ctrl+ホイールでブラシサイズが変わる', async ({ page }) => {
-  const area = page.getByTestId('bg-canvas-area');
-  const box = await area.boundingBox();
-  if (!box) throw new Error('canvas area not found');
+  const box = await canvasBox(page);
 
   const before = Number(await page.getByTestId('brush-size-value').textContent());
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -94,6 +95,22 @@ test('Ctrl+ホイールでブラシサイズが変わる', async ({ page }) => {
       before,
     );
   }).toPass();
+});
+
+test('ホイールでズームできる', async ({ page }) => {
+  const zoomValue = page.getByTestId('zoom-value');
+  await expect(zoomValue).toHaveText('100%');
+
+  const box = await canvasBox(page);
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.wheel(0, -500);
+  await expect(async () => {
+    expect(parseInt((await zoomValue.textContent()) ?? '0', 10)).toBeGreaterThan(100);
+  }).toPass();
+
+  // キー 1 で等倍へ戻る
+  await page.keyboard.press('1');
+  await expect(zoomValue).toHaveText('100%');
 });
 
 test('透過 PNG をダウンロードできる', async ({ page }) => {

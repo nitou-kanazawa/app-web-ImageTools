@@ -44,6 +44,8 @@ export function useBrushEditor(options: BrushEditorOptions) {
   // Ctrl+ホイールのリスナーを付けるラッパー要素（画像ロード後にマウントされるため state で追跡）
   const [wrapEl, setWrapEl] = useState<HTMLDivElement | null>(null);
 
+  // カーソルプレビューは position: fixed でビューポート座標に置く
+  // （ズーム用の transform が掛かった要素の内側でも座標計算が壊れないようにする）
   const updateCursorEl = useCallback(() => {
     const el = cursorElRef.current;
     const h = hoverRef.current;
@@ -96,8 +98,8 @@ export function useBrushEditor(options: BrushEditorOptions) {
       const canvas = e.currentTarget;
       const rect = canvas.getBoundingClientRect();
       hoverRef.current = {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
+        x: e.clientX,
+        y: e.clientY,
         scale: rect.width > 0 && canvas.width > 0 ? rect.width / canvas.width : 1,
         visible: true,
       };
